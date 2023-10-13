@@ -1,10 +1,9 @@
 import asyncio
 import logging
-import time
-
 import requests
 import websockets
 import json
+
 
 class Guru3Mgr:
     def __init__(self, config: dict, event_queue: asyncio.Queue, queue_lock: asyncio.Lock):
@@ -13,7 +12,6 @@ class Guru3Mgr:
             self.api_header = {'ApiKey': file.read().strip()}
         self.rest_url = f'https://{config["domain"]}/api/event/1/messages'
         self.ws_url = f'wss://{config["domain"]}/status/stream/'
-        print(self.ws_url)
         self.config = config
         self.events = event_queue
         self.active_event_ids = set()
@@ -41,10 +39,10 @@ class Guru3Mgr:
                 # query events from Guru3 via REST api
                 await self.request_events()
         except asyncio.CancelledError:
-            self.logger.info('Received termination signal, closing WEBSOCKET...')
+            self.logger.info('Received termination signal, closing GURU3 WEBSOCKET...')
         finally:
             await self.ws.close()
-            self.logger.info('WEBSOCKET closed.')
+            self.logger.info('GURU3 WEBSOCKET closed.')
 
     def poke_server(self):
         self.logger.info("Poking server with stick...")
@@ -60,7 +58,7 @@ class Guru3Mgr:
             self.active_event_ids.add(event['id'])
         self.logger.info("Request of events complete.")
 
-    def mark_event_complete(self, event_ids: int|list):
+    def mark_event_complete(self, event_ids: int | list):
         if isinstance(event_ids, int):
             event_ids = [event_ids]
         id_string = f"[{','.join([str(ev_id) for ev_id in event_ids])}]"

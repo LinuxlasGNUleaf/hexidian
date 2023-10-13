@@ -51,6 +51,4 @@ class EventHandler:
                     raise KeyError(f"Invalid event type: {event_type}")
 
         except asyncio.CancelledError:
-            self.logger.info('Received termination signal, GURU3_DISTRIBUTOR closed....')
-        finally:
-            self.logger.info('')
+            self.logger.info('Received termination signal, GURU3_DISTRIBUTOR closed.')
