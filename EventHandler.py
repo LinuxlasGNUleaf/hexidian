@@ -33,7 +33,23 @@ class EventHandler:
         try:
             while True:
                 event = await self.guru3_input_queue.get()
-                self.logger.info(event['type'])
+                event_type = event['type']
+                if event_type == 'SYNC_STARTED' or event_type == 'SYNC_ENDED':
+                    self.guru3_mgr.mark_event_complete(event['id'])
+                    self.logger.info(f'{event_type} ignored internally and reported as processed to Guru3.')
+                elif event_type == 'UPDATE_EXTENSION':
+                    pass
+                elif event_type == 'DELETE_EXTENSION':
+                    pass
+                elif event_type == 'UPDATE_CALLGROUP':
+                    pass
+                elif event_type == 'RENAME_EXTENSION':
+                    pass
+                elif event_type == 'UNSUBSCRIBE_DEVICE':
+                    pass
+                else:
+                    raise KeyError(f"Invalid event type: {event_type}")
+
         except asyncio.CancelledError:
             self.logger.info('Received termination signal, GURU3_DISTRIBUTOR closed....')
         finally:

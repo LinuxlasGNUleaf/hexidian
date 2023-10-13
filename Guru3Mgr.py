@@ -55,9 +55,9 @@ class Guru3Mgr:
         received_events = json.loads(requests.get(self.rest_url, headers=self.api_header).content)
         for event in received_events:
             if event['id'] in self.active_event_ids:
-                self.logger.info(f'Skipping event with id {event["id"]}...')
                 continue
             await self.events.put(event)
+            self.active_event_ids.add(event['id'])
         self.logger.info("Request of events complete.")
 
     def mark_event_complete(self, event_ids: int|list):
