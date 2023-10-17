@@ -6,22 +6,22 @@ import json
 
 
 class Guru3Mgr:
-    def __init__(self, config: dict, event_queue: asyncio.Queue, queue_lock: asyncio.Lock):
-        self.ws = None
-        with open(config['token_file'], 'r') as file:
-            self.api_header = {'ApiKey': file.read().strip()}
-        self.rest_url = f'https://{config["domain"]}/api/event/1/messages'
-        self.ws_url = f'wss://{config["domain"]}/status/stream/'
-        self.config = config
-        self.events = event_queue
-        self.active_event_ids = set()
-        self.event_lock = queue_lock
+    def __init__(self, config: dict, input_queue: asyncio.Queue):
+        self.config = config['guru3']
         self.logger = logging.getLogger(__name__)
-        # super().__init__(url=ws_url, header=self.api_header, on_message=self.on_message)
+        self.ws = None
+        with open(self.config['token_file'], 'r') as file:
+            self.api_header = {'ApiKey': file.read().strip()}
+        self.rest_url = f'https://{self.config["host"]}/api/event/1/messages'
+        self.ws_url = f'wss://{self.config["host"]}/status/stream/'
+        self.events = input_queue
+        self.active_event_ids = set()
 
     async def run(self):
         self.ws = await websockets.connect(uri=self.ws_url, extra_headers=self.api_header)
-        self.poke_server()
+        # pull events waiting in queue
+        await self.request_events()
+        # start listening for events on websocket
         await self.handle_incoming_messages()
 
     async def handle_incoming_messages(self):
@@ -43,10 +43,6 @@ class Guru3Mgr:
         finally:
             await self.ws.close()
             self.logger.info('GURU3 WEBSOCKET closed.')
-
-    def poke_server(self):
-        self.logger.info("Poking server with stick...")
-        self.mark_event_complete(-1)
 
     async def request_events(self):
         self.logger.info("Retrieving events from Guru3...")

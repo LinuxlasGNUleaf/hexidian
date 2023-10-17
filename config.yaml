@@ -1,3 +1,10 @@
-domain: 'guru3.hackwerk.fun'
-token_file: 'token.tk'
 log_file: 'log.txt'
+
+guru3:
+  host: 'guru3.hackwerk.fun'
+  token_file: 'guru3.tk'
+
+omm:
+  host: '10.40.42.55'
+  port: 12622
+  token_file: 'omm.tk'

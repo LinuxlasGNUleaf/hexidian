@@ -2,15 +2,15 @@ import asyncio
 import logging
 
 from Guru3Mgr import Guru3Mgr
+from OMMMgr import OMMMgr
 
 
 class EventHandler:
     def __init__(self, config):
         self.config = config
         self.guru3_input_queue = asyncio.Queue()
-        self.guru3_input_queue_lock = asyncio.Lock()
-        self.guru3_mgr = Guru3Mgr(self.config, event_queue=self.guru3_input_queue,
-                                  queue_lock=self.guru3_input_queue_lock)
+        self.guru3_mgr = Guru3Mgr(self.config, input_queue=self.guru3_input_queue)
+        self.omm_mgr = OMMMgr(self.config)
         self.logger = logging.getLogger(__name__)
         self.tasks = []
 
@@ -25,8 +25,16 @@ class EventHandler:
 
     async def run_tasks(self):
         self.tasks = []
+
+        # Guru3 task, responsible for pulling events from frontend and marking them as done
         self.tasks.append(asyncio.create_task(self.guru3_mgr.run()))
+
+        # EventHandler task, responsible for distributing incoming messages from Guru3
+        # to the responsible backend manager (OMM or Asterisk DB)
         self.tasks.append(asyncio.create_task(self.distribute_guru3_messages()))
+
+        # OMM task, responsible for establishing connection to Open Mobility Manager (DECT Manager)
+        self.tasks.append(asyncio.create_task(self.omm_mgr.start_communication()))
         await asyncio.gather(*self.tasks)
 
     async def distribute_guru3_messages(self):
