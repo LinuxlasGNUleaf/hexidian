@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from python_mitel.OMMClient.OMMClient import OMMClient
+from python_mitel.OMMClient import OMMClient
 
 
 class OMMMgr:
