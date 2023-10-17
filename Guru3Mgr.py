@@ -12,13 +12,22 @@ class Guru3Mgr:
         self.ws = None
         with open(self.config['token_file'], 'r') as file:
             self.api_header = {'ApiKey': file.read().strip()}
-        self.rest_url = f'https://{self.config["host"]}/api/event/1/messages'
-        self.ws_url = f'wss://{self.config["host"]}/status/stream/'
+        # URI  building
+        port = self.config.get('port', '')
+        port = ':' + str(port) if port else port
+        print(self.config['tls'] is False)
+        tls = 's' if self.config['tls'] else ''
+        self.rest_url = f'http{tls}://{self.config["host"]}{port}/api/event/1/messages'
+        self.ws_url = f'ws{tls}://{self.config["host"]}{port}/status/stream/'
+
         self.events = input_queue
         self.active_event_ids = set()
 
     async def run(self):
-        self.ws = await websockets.connect(uri=self.ws_url, extra_headers=self.api_header)
+        try:
+            self.ws = await websockets.connect(uri=self.ws_url, extra_headers=self.api_header)
+        except asyncio.TimeoutError:
+            raise ConnectionError("Guru3 host invalid!")
         # pull events waiting in queue
         await self.request_events()
         # start listening for events on websocket

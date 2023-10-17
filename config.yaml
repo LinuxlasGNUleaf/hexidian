@@ -1,8 +1,11 @@
 log_file: 'log.txt'
 
 guru3:
-  host: 'guru3.hackwerk.fun'
+  #host: 'guru3.hackwerk.fun'
+  host: 10.43.42.10
+  port: 8086
   token_file: 'guru3.tk'
+  tls: false
 
 omm:
   host: '10.40.42.55'

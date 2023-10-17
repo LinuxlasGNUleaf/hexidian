@@ -15,11 +15,11 @@ class OMMMgr:
         try:
             self.omm.login(user=self.user, password=self.password)
             self.logger.info('Successfully logged into OMM')
-            self.logger.info("SARI: " + self.omm.get_sari())
             self.logger.info("OMM: " + self.omm.get_systemname())
-            self.logger.info(self.omm.get_limits())
+            # professional way of stopping the Mgr from logging out instantly for the time being
+            await asyncio.sleep(10000)
         except asyncio.CancelledError:
             pass
         finally:
             self.omm.logout()
-            self.logger.info('Successfully logged out of OMM')
+            self.logger.info('Successfully logged out of OMM.')
