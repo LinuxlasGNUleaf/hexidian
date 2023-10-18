@@ -8,6 +8,9 @@ from OMMMgr import OMMMgr
 class EventHandler:
     def __init__(self, config):
         self.config = config
+        self.own_config = config['event_handler']
+        self.omm_msgtypes = self.own_config['omm_msgtypes']
+        self.asterisk_msgtypes = self.own_config['asterisk_msgtypes']
         self.guru3_input_queue = asyncio.Queue()
         self.guru3_mgr = Guru3Mgr(self.config, input_queue=self.guru3_input_queue)
         self.omm_mgr = OMMMgr(self.config)
@@ -18,10 +21,9 @@ class EventHandler:
         try:
             asyncio.run(self.run_tasks())
         except KeyboardInterrupt:
+            self.logger.info("Cancelling tasks...")
             for task in self.tasks:
                 task.cancel()
-        finally:
-            self.logger.info("Cancelling tasks...")
 
     async def run_tasks(self):
         self.tasks = []
@@ -40,23 +42,38 @@ class EventHandler:
     async def distribute_guru3_messages(self):
         try:
             while True:
+                # wait for new event in queue
                 event = await self.guru3_input_queue.get()
+                event_id = event['id']
                 event_type = event['type']
+
+                # sync start and end can be safely ignored and reported back to Guru3 as done
                 if event_type == 'SYNC_STARTED' or event_type == 'SYNC_ENDED':
-                    self.guru3_mgr.mark_event_complete(event['id'])
+                    self.guru3_mgr.mark_event_complete(event_id)
                     self.logger.info(f'{event_type} ignored internally and reported as processed to Guru3.')
-                elif event_type == 'UPDATE_EXTENSION':
-                    pass
-                elif event_type == 'DELETE_EXTENSION':
-                    pass
-                elif event_type == 'UPDATE_CALLGROUP':
-                    pass
-                elif event_type == 'RENAME_EXTENSION':
-                    pass
-                elif event_type == 'UNSUBSCRIBE_DEVICE':
-                    pass
-                else:
+                    continue
+
+                # if relevant for OMM, let OMM Mgr process the event
+                if event_type in self.omm_msgtypes:
+                    self.logger.info(f'Sending event {event_id} ({event_type}) to OMM Manager to process...')
+                    ok = await self.omm_mgr.handle_event(event)
+                    if not ok:
+                        self.logger.error(f'Event could not be processed! ' + str(event))
+                        raise RuntimeError(f'Error while OMM Manager was processing event {event_id} ({event_type})')
+
+                # if relevant for Asterisk, let Asterisk Mgr process the event
+                if event_type in self.asterisk_msgtypes:
+                    self.logger.info(f'Sending event {event_id} ({event_type}) to Asterisk Manager to process...')
+                    # ok = await self.asterisk_mgr.handle_event(event)
+                    # if not ok:
+                    #     self.logger.error(f'Event could not be processed! ' + str(event))
+                    #     raise RuntimeError(f'Error while Asterisk Manager was processing event {event["id"]} ({event_type})')
+
+                if event_type not in self.asterisk_msgtypes+self.omm_msgtypes:
                     raise KeyError(f"Invalid event type: {event_type}")
+
+                # UNCOMMENT WHEN EVERYTHING ACTUALLY WORKS
+                # self.guru3_mgr.mark_event_complete(event_id)
 
         except asyncio.CancelledError:
             self.logger.info('Received termination signal, GURU3_DISTRIBUTOR closed.')

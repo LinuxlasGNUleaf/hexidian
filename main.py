@@ -13,7 +13,7 @@ with open('config.yaml', 'r') as cfg_stream:
         sys.exit()
 
 logging.basicConfig(format='[%(asctime)s] [%(levelname)-8s] --- [%(module)-10s]: %(message)s',
-                    level=logging.INFO,
+                    level=logging.DEBUG,
                     handlers=[logging.FileHandler(config['log_file']), logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 

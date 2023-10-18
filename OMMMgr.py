@@ -16,10 +16,16 @@ class OMMMgr:
             self.omm.login(user=self.user, password=self.password)
             self.logger.info('Successfully logged into OMM')
             self.logger.info("OMM: " + self.omm.get_systemname())
-            # professional way of stopping the Mgr from logging out instantly for the time being
-            await asyncio.sleep(10000)
+            self.logger.info('Allowing wildcard subscription...')
+            while True:
+                self.logger.debug(
+                    f'Result of wildcard subscription action: {self.omm.set_subscription("wildcard", 120)}')
+                await asyncio.sleep(110)
         except asyncio.CancelledError:
             pass
         finally:
             self.omm.logout()
             self.logger.info('Successfully logged out of OMM.')
+
+    async def handle_event(self, event):
+        return True

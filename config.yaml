@@ -1,5 +1,9 @@
 log_file: 'log.txt'
 
+event_handler:
+  omm_msgtypes: ['UPDATE_EXTENSION', 'DELETE_EXTENSION', 'UPDATE_CALLGROUP', 'RENAME_EXTENSION', 'UNSUBSCRIBE_DEVICE']
+  asterisk_msgtypes: []
+
 guru3:
   #host: 'guru3.hackwerk.fun'
   host: 10.43.42.10

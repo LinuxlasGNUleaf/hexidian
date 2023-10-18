@@ -15,7 +15,6 @@ class Guru3Mgr:
         # URI  building
         port = self.config.get('port', '')
         port = ':' + str(port) if port else port
-        print(self.config['tls'] is False)
         tls = 's' if self.config['tls'] else ''
         self.rest_url = f'http{tls}://{self.config["host"]}{port}/api/event/1/messages'
         self.ws_url = f'ws{tls}://{self.config["host"]}{port}/status/stream/'
