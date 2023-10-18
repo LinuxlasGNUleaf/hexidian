@@ -655,6 +655,36 @@ class OMMClient(Events):
         else:
             return None
 
+    def delete_user(self, uid):
+        """ Delete a configured user (uid)
+        .. note:: This operation cannot be undone!
+        :param uid: user id of the user to be deleted (>0)
+        :type uid: int
+        :return: None
+        """
+        self._ensure_login()
+        self._sendrequest("DeletePPUser", {"uid": uid, "seq": str(self._get_sequence())})
+
+    def update_user(self, user):
+        """ Updates a configured user by the changes done to the previously fetched PPUser object
+        :param user: user id of the user to be deleted (>0)
+        :type user: PPUser
+        :param uid: User ID
+        :type uid: int
+        :return: None
+        """
+        messagedata = {
+            "user": {**user.changes, 'uid': user.uid}
+        }
+        message, attributes, children = self._sendrequest("SetPPUser", {"seq": str(self._get_sequence())}, messagedata)
+        if len(children) > 0 and children["user"] is not None:
+            return True
+        else:
+            return False
+
+    def encrypt_pin(self, pin):
+        return encrypt_pin(pin, self._modulus, self._exponent)
+
     def delete_device(self, ppid):
         """ Delete a configured handset (pp)
 

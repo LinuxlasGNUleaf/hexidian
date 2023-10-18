@@ -85,7 +85,7 @@ class PPUser:
     serviceUserName = None
     forwardTime = None
     _ommclient = None
-    _changes = None
+    changes = {}
     _changelock = Lock()
 
     def __init__(self, ommclient, attributes=None):
@@ -101,7 +101,7 @@ class PPUser:
         if key == "uid" and "uid" in self.__dict__:
             raise Exception("Cannot change uid !")
         with self._changelock:
-            self._changes[key] = value
+            self.changes[key] = value
             self.__dict__[key] = value
 
     def _init_from_attributes(self, attributes):
@@ -116,9 +116,9 @@ class PPUser:
         return attributes
 
     def commit(self):
-        if not self._changes:
+        if not self.changes:
             return True
         with self._changelock:
-            for change in self._changes:
+            for change in self.changes:
                 print(change)
             return True
