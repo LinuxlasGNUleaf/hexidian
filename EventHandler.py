@@ -56,7 +56,7 @@ class EventHandler:
                 # if relevant for OMM, let OMM Mgr process the event
                 if event_type in self.omm_msgtypes:
                     self.logger.info(f'Sending event {event_id} ({event_type}) to OMM Manager to process...')
-                    ok = await self.omm_mgr.handle_event(event)
+                    ok = self.omm_mgr.handle_event(event)
                     if not ok:
                         self.logger.error(f'Event could not be processed! ' + str(event))
                         raise RuntimeError(f'Error while OMM Manager was processing event {event_id} ({event_type})')
@@ -73,7 +73,7 @@ class EventHandler:
                     raise KeyError(f"Invalid event type: {event_type}")
 
                 # UNCOMMENT WHEN EVERYTHING ACTUALLY WORKS
-                # self.guru3_mgr.mark_event_complete(event_id)
+                self.guru3_mgr.mark_event_complete(event_id)
 
         except asyncio.CancelledError:
             self.logger.info('Received termination signal, GURU3_DISTRIBUTOR closed.')

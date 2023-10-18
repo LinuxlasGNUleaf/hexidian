@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import os
+
 import requests
 import websockets
 import json
@@ -10,6 +12,8 @@ class Guru3Mgr:
         self.config = config['guru3']
         self.logger = logging.getLogger(__name__)
         self.ws = None
+        if not os.path.exists(self.config['token_file']):
+            raise FileNotFoundError("Token File for Guru3 manager not found!")
         with open(self.config['token_file'], 'r') as file:
             self.api_header = {'ApiKey': file.read().strip()}
         # URI  building
