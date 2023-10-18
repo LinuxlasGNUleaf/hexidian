@@ -75,7 +75,7 @@ class OMMMgr:
             return True
         elif event_type == 'RENAME_EXTENSION':
             old_num = event['data']['old_extension']
-            new_num = event['data']['old_extension']
+            new_num = event['data']['new_extension']
             user = self.users[old_num]
             user.num = new_num
             del self.users[old_num]
