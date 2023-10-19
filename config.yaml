@@ -1,7 +1,8 @@
 log_file: 'log.txt'
 
 event_handler:
-  omm_msgtypes: ['UPDATE_EXTENSION', 'DELETE_EXTENSION', 'UPDATE_CALLGROUP', 'RENAME_EXTENSION', 'UNSUBSCRIBE_DEVICE']
+  ignored_msgtypes: ['SYNC_STARTED', 'SYNC_STARTED', 'SYNC_ENDED']
+  omm_msgtypes: ['UPDATE_EXTENSION', 'DELETE_EXTENSION', 'RENAME_EXTENSION', 'UNSUBSCRIBE_DEVICE']
   asterisk_msgtypes: []
 
 guru3:
@@ -15,3 +16,4 @@ omm:
   host: '10.40.42.55'
   port: 12622
   token_file: 'omm.tk'
+  blind_accept: true

@@ -37,6 +37,9 @@ class OMMMgr:
             self.logger.info('Successfully logged out of OMM.')
 
     def handle_event(self, event):
+        if self.config['blind_accept']:
+            self.logger.warning("BLIND ACCEPTING THIS EVENT!")
+            return True
         event_type = event['type']
         event_data = event['data']
         if event_type == 'UPDATE_EXTENSION':
@@ -70,8 +73,10 @@ class OMMMgr:
                     f'Created new user ({user_data["uid"]}, {number}) in response to event {event["id"]} [{event_type}]')
                 return True
         elif event_type == 'DELETE_EXTENSION':
-            return False
-        elif event_type == 'UPDATE_CALLGROUP':
+            number = event_data['number']
+            user = self.users[number]
+            del self.users[number]
+            self.omm.delete_user(user.uid)
             return True
         elif event_type == 'RENAME_EXTENSION':
             old_num = event['data']['old_extension']
