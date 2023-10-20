@@ -37,22 +37,24 @@ class OMMMgr:
             self.logger.info('Successfully logged out of OMM.')
 
     def handle_event(self, event):
-        if self.config['blind_accept']:
-            self.logger.warning("BLIND ACCEPTING THIS EVENT!")
-            return True
         event_type = event['type']
         event_data = event['data']
         if event_type == 'UPDATE_EXTENSION':
-            # extract extension type and check if DECT handling is necessary
+            # extract extension type, number and other info from event and check if DECT handling is necessary
             ext_type = event_data['type']
-            if ext_type != 'DECT':
-                self.logger.info(f'event concerns non-DECT extension (type: {ext_type}), skipping OMM event handling.')
-                return True
-
-            # extract number and other info from event
             number = event_data['number']
             display_name = event_data['name'][:19]
             desc2 = f'L: {event_data["location"][:12]}'
+
+            if ext_type != 'DECT':
+                if number in self.users:
+                    self.logger.info("SIP extension registration while a OMM user with the same number is registered!")
+                    user = self.users[number]
+                    del self.users[number]
+                    self.omm.delete_user(user.uid)
+                    self.logger.info('deleted outdated OMM user to avoid clashes with new SIP user')
+                self.logger.info(f'event concerns non-DECT extension (type: {ext_type}), skipping OMM event handling.')
+                return True
 
             # if user already exists, update user entry
             if number in self.users:

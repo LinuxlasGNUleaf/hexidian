@@ -15,9 +15,8 @@ omm:
   host: 10.40.42.55
   port: 12622
   token_file: omm.tk
-  blind_accept: true
 
 asterisk:
   host: 10.43.42.10
-  port: 8123
+  port: 5432
   token_file: asterisk.tk
