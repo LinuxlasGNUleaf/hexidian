@@ -25,74 +25,15 @@ class OMMMgr:
             self.logger.info("OMM: " + self.omm.get_systemname())
             self.logger.info("Reading users from OMM...")
             self.read_users()
-            self.logger.info('Allowing wildcard subscription...')
+            self.logger.info('Allowing subscription...')
             while True:
-                self.logger.debug(
-                    f'Result of wildcard subscription action: {self.omm.set_subscription("wildcard", 5)}')
-                await asyncio.sleep(60 * 5 - 10)
+                self.logger.debug(f'Result of subscription action: {self.omm.set_subscription("configured")}')
+                await asyncio.sleep(60)
         except asyncio.CancelledError:
             pass
         finally:
             self.omm.logout()
             self.logger.info('Successfully logged out of OMM.')
-
-    def handle_event(self, event):
-        event_type = event['type']
-        event_data = event['data']
-        if event_type == 'UPDATE_EXTENSION':
-            # extract extension type, number and other info from event and check if DECT handling is necessary
-            ext_type = event_data['type']
-            number = event_data['number']
-            display_name = event_data['name'][:19]
-            desc2 = f'L: {event_data["location"][:12]}'
-
-            if ext_type != 'DECT':
-                if number in self.users:
-                    self.logger.info("SIP extension registration while a OMM user with the same number is registered!")
-                    user = self.users[number]
-                    del self.users[number]
-                    self.omm.delete_user(user.uid)
-                    self.logger.info('deleted outdated OMM user to avoid clashes with new SIP user')
-                self.logger.info(f'event concerns non-DECT extension (type: {ext_type}), skipping OMM event handling.')
-                return True
-
-            # if user already exists, update user entry
-            if number in self.users:
-                self.logger.info('User for this number already present, updating user info instead...')
-                user = self.users[number]
-                user.name = display_name
-                user.hierarchy2 = desc2
-                self.users[number] = user
-                self.omm.update_user(user)
-                self.logger.info(f'Successfully updated user info for user {user.uid} with number {number}.')
-                return True
-            # else, create a new user
-            else:
-                self.logger.info(f'Attempting to create new user with number {number}...')
-                user_data = self.omm.create_user(name=display_name, number=number, desc1='GURU_MGR', desc2=desc2)
-                self.users[number] = self.omm.get_user(user_data['uid'])
-                self.logger.info(
-                    f'Created new user ({user_data["uid"]}, {number}) in response to event {event["id"]} [{event_type}]')
-                return True
-        elif event_type == 'DELETE_EXTENSION':
-            number = event_data['number']
-            user = self.users[number]
-            del self.users[number]
-            self.omm.delete_user(user.uid)
-            return True
-        elif event_type == 'RENAME_EXTENSION':
-            old_num = event['data']['old_extension']
-            new_num = event['data']['new_extension']
-            user = self.users[old_num]
-            user.num = new_num
-            del self.users[old_num]
-            self.users[new_num] = user
-            self.omm.update_user(user)
-            return True
-        elif event_type == 'UNSUBSCRIBE_DEVICE':
-            return False
-        else:
-            return False
 
     def read_users(self):
         self.users = {}
@@ -102,3 +43,39 @@ class OMMMgr:
                 continue
             self.users[user.num] = user
         self.logger.info(f'Found {len(self.users.keys()) if self.users else "no"} user(s) managed by guru-manager.')
+
+    def delete_user(self, number):
+        user = self.users[number]
+        del self.users[number]
+        self.omm.delete_user(user.uid)
+        self.logger.info(f'deleted OMM user {user.uid}.')
+        return user
+
+    def update_user(self, name, number, sip_user, sip_password):
+        user = self.users[number]
+        user.name = name
+        user.sipAuthId = sip_user
+        user.sipPw = sip_password
+        self.users[number] = user
+        self.omm.update_user(user)
+        self.logger.info(f'Successfully updated OMM user info for user {user.uid} with number {number}.')
+        return user
+
+    def create_user(self, name, number, sip_user, sip_password):
+        user_data = self.omm.create_user(name=name,
+                                         number=number,
+                                         desc1='GURU_MGR',
+                                         sip_user=sip_user,
+                                         sip_password=sip_password)
+        self.users[number] = self.omm.get_user(user_data['uid'])
+        self.logger.info(f'Created new OMM user with ID {user_data["uid"]}, number: {number}')
+        return self.users[number]
+
+    def move_user(self, old_number, new_number):
+        user = self.users[old_number]
+        del self.users[old_number]
+        user.num = new_number
+        self.users[new_number] = user
+        self.omm.update_user(user)
+        self.logger.info(f'Moved OMM user from number {old_number} to number {new_number}.')
+        return user

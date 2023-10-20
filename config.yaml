@@ -1,9 +1,15 @@
 log_file: 'log.txt'
 
 event_handler:
-  ignored_msgtypes: ['SYNC_STARTED', 'SYNC_STARTED', 'SYNC_ENDED']
-  omm_msgtypes: ['UPDATE_EXTENSION', 'DELETE_EXTENSION', 'RENAME_EXTENSION', 'UNSUBSCRIBE_DEVICE']
-  asterisk_msgtypes: []
+  # ALL MESSAGE TYPES:
+  #  SYNC_STARTED
+  #  SYNC_ENDED
+  #  UPDATE_EXTENSION
+  #  DELETE_EXTENSION
+  #  UPDATE_CALLGROUP
+  #  RENAME_EXTENSION
+  #  UNSUBSCRIBE_DEVICE
+  ignored_msgtypes: ['SYNC_STARTED', 'SYNC_ENDED', 'UPDATE_CALLGROUP']
 
 guru3:
   host: 10.43.42.10
