@@ -6,14 +6,18 @@ event_handler:
   asterisk_msgtypes: []
 
 guru3:
-  #host: 'guru3.hackwerk.fun'
   host: 10.43.42.10
   port: 8086
-  token_file: 'guru3.tk'
+  token_file: guru3.tk
   tls: false
 
 omm:
-  host: '10.40.42.55'
+  host: 10.40.42.55
   port: 12622
-  token_file: 'omm.tk'
+  token_file: omm.tk
   blind_accept: true
+
+asterisk:
+  host: 10.43.42.10
+  port: 8123
+  token_file: asterisk.tk

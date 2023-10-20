@@ -3,6 +3,7 @@ import logging
 
 from Guru3Mgr import Guru3Mgr
 from OMMMgr import OMMMgr
+from AsteriskMgr import AsteriskManager
 
 
 class EventHandler:
@@ -11,6 +12,7 @@ class EventHandler:
         self.guru3_input_queue = asyncio.Queue()
         self.guru3_mgr = Guru3Mgr(config, input_queue=self.guru3_input_queue)
         self.omm_mgr = OMMMgr(config)
+        self.asterisk_mgr = AsteriskManager(config)
         self.logger = logging.getLogger(__name__)
         self.tasks = []
 
