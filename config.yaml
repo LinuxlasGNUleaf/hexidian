@@ -27,3 +27,7 @@ asterisk:
   port: 5432
   token_file: asterisk.tk
   password_length: 10
+
+registration:
+  port: 4242
+  public: false

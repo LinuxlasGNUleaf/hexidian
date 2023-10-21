@@ -1,18 +1,24 @@
 import asyncio
 import logging
+import threading
 
 from Guru3Mgr import Guru3Mgr
 from OMMMgr import OMMMgr
 from AsteriskMgr import AsteriskManager
+from RegistrationMgr import RegistrationMgr
 
 
 class EventHandler:
     def __init__(self, config):
         self.own_config = config['event_handler']
-        self.guru3_input_queue = asyncio.Queue()
-        self.guru3_mgr = Guru3Mgr(config, input_queue=self.guru3_input_queue)
+        self.input_queue = asyncio.Queue()
+        self.registration_queue = asyncio.Queue()
+
+        self.guru3_mgr = Guru3Mgr(config, input_queue=self.input_queue)
         self.omm_mgr = OMMMgr(config)
         self.asterisk_mgr = AsteriskManager(config)
+        self.registration_mgr = RegistrationMgr(config, self.registration_queue)
+
         self.logger = logging.getLogger(__name__)
         self.tasks = []
 
@@ -27,6 +33,9 @@ class EventHandler:
     async def run_tasks(self):
         self.tasks = []
 
+        # Registration Webserver task, starts a webserver to receive info from Asterisk
+        self.tasks.append(asyncio.create_task(self.registration_mgr.run_server()))
+
         # Guru3 task, responsible for pulling events from frontend and marking them as done
         self.tasks.append(asyncio.create_task(self.guru3_mgr.run()))
 
@@ -37,7 +46,6 @@ class EventHandler:
         # OMM task, responsible for establishing connection to Open Mobility Manager (DECT Manager)
         self.tasks.append(asyncio.create_task(self.omm_mgr.start_communication()))
 
-        self.asterisk_mgr.check_for_user(3141)
         try:
             # gather all tasks
             await asyncio.gather(*self.tasks)
@@ -48,7 +56,7 @@ class EventHandler:
         try:
             while True:
                 # wait for new event in queue
-                event = await self.guru3_input_queue.get()
+                event = await self.input_queue.get()
                 event_id = event['id']
                 event_type = event['type']
                 event_data = event['data']
