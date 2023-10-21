@@ -51,11 +51,9 @@ class OMMMgr:
         self.logger.info(f'deleted OMM user {user.uid}.')
         return user
 
-    def update_user(self, name, number, sip_user, sip_password):
+    def update_user_info(self, number, name):
         user = self.users[number]
         user.name = name
-        user.sipAuthId = sip_user
-        user.sipPw = sip_password
         self.users[number] = user
         self.omm.update_user(user)
         self.logger.info(f'Successfully updated OMM user info for user {user.uid} with number {number}.')
@@ -75,6 +73,7 @@ class OMMMgr:
         user = self.users[old_number]
         del self.users[old_number]
         user.num = new_number
+        user.sipAuthId = new_number
         self.users[new_number] = user
         self.omm.update_user(user)
         self.logger.info(f'Moved OMM user from number {old_number} to number {new_number}.')

@@ -37,6 +37,7 @@ class EventHandler:
         # OMM task, responsible for establishing connection to Open Mobility Manager (DECT Manager)
         self.tasks.append(asyncio.create_task(self.omm_mgr.start_communication()))
 
+        self.asterisk_mgr.check_for_user(3141)
         try:
             # gather all tasks
             await asyncio.gather(*self.tasks)
@@ -60,18 +61,15 @@ class EventHandler:
 
                 # =====> CALL EVENT PROCESSORS
                 if event_type == 'UPDATE_EXTENSION':
-                    ok = self.do_update_extension(event_data)
+                    self.do_update_extension(event_data)
                 elif event_type == 'DELETE_EXTENSION':
-                    ok = self.do_delete_extension(event_data)
+                    self.do_delete_extension(event_data)
                 elif event_type == 'RENAME_EXTENSION':
-                    ok = self.do_rename_extension(event_data)
+                    self.do_rename_extension(event_data)
                 elif event_type == 'UNSUBSCRIBE_DEVICE':
-                    ok = self.do_unsubscribe_device(event_data)
+                    self.do_unsubscribe_device(event_data)
                 else:
-                    ok = False
-
-                if not ok:
-                    self.logger.error(f'Event could not be processed! ' + str(event))
+                    self.logger.error(f'Event unknown! ' + str(event))
                     raise RuntimeError(f'Error while EventHandler was processing event {event_id} ({event_type})')
 
                 # mark event done in Guru3
@@ -84,53 +82,80 @@ class EventHandler:
         # extract event info
         ext_type = event_data['type']
         number = event_data['number']
-        name = event_data['name'][:19]
+        # trim name to length acceptable by OMM
+        event_data['name'] = event_data['name'][:19]
 
-        # if new extension type is not DECT or SIP, determine whether the old corresponding DECT extension needs to be deleted
+        # if new extension type is not DECT or SIP, determine whether the old user needs to be deleted
         if ext_type not in ['DECT', 'SIP']:
-            self.logger.warning('Extension is neither DECT nor SIP, ignoring!')
-            return True
+            self.logger.warning('Extension is neither DECT nor SIP, deleting corresponding extensions!')
+            if number in self.omm_mgr.users:
+                self.omm_mgr.delete_user(number)
+            if self.asterisk_mgr.check_for_user(number):
+                self.asterisk_mgr.delete_user(number)
+            return
 
         # handle SIP extension update
         if ext_type == 'SIP':
-            # delete DECT extension, if present
-            if number in self.omm_mgr.users:
-                self.logger.info("SIP extension registration while a OMM user with the same number is registered!")
-                self.omm_mgr.delete_user(number)
-            # TODO: SIP MAGIC!
-            return True
+            self.do_sip_extension_update(event_data)
 
         # handle DECT extension update
         elif ext_type == 'DECT':
-            # if user already exists, update user entry
-            if number in self.omm_mgr.users:
-                self.logger.info('User for this number already present, updating user info instead...')
-                # TODO: SIP MAGIC!
-                # TODO: change SIP password to actual password!
-                self.omm_mgr.update_user(name=name, number=number, sip_user=number, sip_password=number)
-                return True
+            self.do_dect_extension_update(event_data)
 
-            # else, create a new user
-            else:
-                self.logger.info(f'Attempting to create new user with number {number} in Asterisk and OMM...')
-                sip_password = self.asterisk_mgr.create_user(number)
-                self.omm_mgr.create_user(name=name, number=number, sip_user=number, sip_password=sip_password)
-                return True
+    def do_sip_extension_update(self, event_data):
+        number = event_data['number']
+        password = event_data['password']
+
+        # delete DECT extension, if present
+        if number in self.omm_mgr.users:
+            self.logger.info("Deleting OMM user with the same number as SIP extension.")
+            self.omm_mgr.delete_user(number=number)
+
+        # SIP extension already exists, only a password update is required
+        if self.asterisk_mgr.check_for_user(number=number):
+            self.logger.info("SIP extension update, syncing password")
+            self.asterisk_mgr.update_password(number=number, new_password=password)
+
+        # new SIP extension
+        else:
+            self.logger.info("New SIP extension, creating SIP user with password created by Guru3")
+            self.asterisk_mgr.create_user(number=number, sip_password=password)
+
+    def do_dect_extension_update(self, event_data):
+        name = event_data['name']
+        number = event_data['number']
+
+        # if user already exists, update user entry
+        if number in self.omm_mgr.users:
+            self.logger.info('OMM user already present, updating user info instead...')
+            self.omm_mgr.update_user_info(number=number, name=name)
+
+        # else, create a new user
+        else:
+            # make sure that any existing SIP user is being deleted beforehand
+            if self.asterisk_mgr.check_for_user(number=number):
+                self.asterisk_mgr.delete_user(number=number)
+
+            self.logger.info(f'Attempting to create new user with number {number} in Asterisk and OMM...')
+            sip_password = self.asterisk_mgr.create_user(number=number)
+            self.omm_mgr.create_user(name=name, number=number, sip_user=number, sip_password=sip_password)
 
     def do_delete_extension(self, event_data):
         number = event_data['number']
-        # TODO: SIP MAGIC!
-        self.omm_mgr.delete_user(number)
-        return True
+        self.asterisk_mgr.delete_user(number=number)
+        if number in self.omm_mgr.users:
+            self.omm_mgr.delete_user(number=number)
 
     def do_rename_extension(self, event_data):
         old_number = event_data['old_extension']
         new_number = event_data['new_extension']
-        # TODO: SIP MAGIC!
-        self.omm_mgr.move_user(old_number, new_number)
-        return True
+        if self.asterisk_mgr.check_for_user(old_number):
+            self.asterisk_mgr.move_user(old_number, new_number)
+
+        if old_number in self.omm_mgr.users:
+            self.omm_mgr.move_user(old_number, new_number)
 
     def do_unsubscribe_device(self, event_data):
         # TODO: SIP MAGIC!
         # TODO: OMM MAGIC!
-        return True
+        return

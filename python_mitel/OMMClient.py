@@ -669,8 +669,6 @@ class OMMClient(Events):
         """ Updates a configured user by the changes done to the previously fetched PPUser object
         :param user: user id of the user to be deleted (>0)
         :type user: PPUser
-        :param uid: User ID
-        :type uid: int
         :return: None
         """
         messagedata = {

@@ -26,3 +26,4 @@ asterisk:
   host: 10.43.42.10
   port: 5432
   token_file: asterisk.tk
+  password_length: 10
