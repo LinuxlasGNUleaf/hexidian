@@ -9,8 +9,8 @@ with open('config.yaml', 'r') as cfg_stream:
         print('parsing config file...')
         config = yaml.safe_load(cfg_stream)
     except yaml.YAMLError as exc:
-        print(f'While parsing the config file, the following error occurred:\n{exc}')
-        sys.exit()
+        print(f'While parsing the config file, the following exception occurred:')
+        raise exc
 
 logging.basicConfig(format='[%(asctime)s] [%(levelname)-8s] --- [%(module)-10s]: %(message)s',
                     level=logging.INFO,

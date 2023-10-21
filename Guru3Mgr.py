@@ -29,8 +29,9 @@ class Guru3Mgr:
     async def run(self):
         try:
             self.ws = await websockets.connect(uri=self.ws_url, extra_headers=self.api_header)
-        except asyncio.TimeoutError:
-            raise ConnectionError("Guru3 host invalid!")
+        except asyncio.TimeoutError as exc:
+            self.logger.error('Can\'t reach Guru3 websocket!')
+            raise exc
         # pull events waiting in queue
         await self.request_events()
         # start listening for events on websocket

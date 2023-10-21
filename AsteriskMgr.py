@@ -12,13 +12,17 @@ class AsteriskManager:
         with open(self.config['token_file'], 'r') as tk_file:
             self.user, self.password = tk_file.read().split('\n')
 
-        self.connection = psycopg2.connect(
-            database="asterisk",
-            host=self.config['host'],
-            port=self.config['port'],
-            user=self.user,
-            password=self.password
-        )
+        try:
+            self.connection = psycopg2.connect(
+                database="asterisk",
+                host=self.config['host'],
+                port=self.config['port'],
+                user=self.user,
+                password=self.password
+            )
+        except psycopg2.OperationalError as exc:
+            self.logger.exception('Can\'t reach PostgreSQL database!')
+            raise exc
         self.logger.info('PostGreSQL database connection established.')
 
     def close(self):
