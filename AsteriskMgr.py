@@ -43,6 +43,7 @@ class AsteriskManager:
                 f"insert into ps_auths (id, auth_type, password, username) values ('{number}', 'userpass', '{sip_password}', {number});")
             cursor.execute(
                 f"insert into ps_endpoints (id, aors, auth, context, allow, direct_media, dtls_auto_generate_cert) values ('{number}', '{number}', '{number}', 'call-router', 'ulaw|alaw|g722|gsm|opus', 'no', 'yes');")
+        self.connection.commit()
         self.logger.info(f'Created new SIP user via PostgreSQL with id {number} and password {sip_password}.')
         return sip_password
 
@@ -51,6 +52,7 @@ class AsteriskManager:
             cursor.execute(f"delete from ps_aors where id='{number}';")
             cursor.execute(f"delete from ps_auths where id='{number}';")
             cursor.execute(f"delete from ps_endpoints where id='{number}';")
+        self.connection.commit()
         self.logger.info(f'Deleted SIP user with id {number} via PostgreSQL.')
 
     def check_for_user(self, number):
@@ -61,9 +63,11 @@ class AsteriskManager:
     def move_user(self, old_number, new_number):
         with self.connection.cursor() as cursor:
             cursor.execute(f"update ps_aors set id='{new_number}' where id='{old_number}'")
-            cursor.execute(f"update ps_auths set id='{new_number}' where id='{old_number}'")
-            cursor.execute(f"update ps_endpoints set id='{new_number}' where id='{old_number}'")
+            cursor.execute(f"update ps_auths set id='{new_number}', username='{new_number}' where id='{old_number}'")
+            cursor.execute(f"update ps_endpoints set id='{new_number}', aors='{new_number}', auth='{new_number}' where id='{old_number}'")
+        self.connection.commit()
 
     def update_password(self, number, new_password):
         with self.connection.cursor() as cursor:
             cursor.execute(f"update ps_auths set password='{new_password}' where id='{number}'")
+        self.connection.commit()

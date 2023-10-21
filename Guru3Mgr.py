@@ -27,17 +27,18 @@ class Guru3Mgr:
         self.active_event_ids = set()
 
     async def run(self):
+        # pull events waiting in queue BEFORE websocket is live, so as not to trigger tons of requests
+        await self.request_events()
+        # start websocket
         try:
             self.ws = await websockets.connect(uri=self.ws_url, extra_headers=self.api_header)
         except asyncio.TimeoutError as exc:
             self.logger.error('Can\'t reach Guru3 websocket!')
             raise exc
-        # pull events waiting in queue
-        await self.request_events()
         # start listening for events on websocket
-        await self.handle_incoming_messages()
+        await self.listen()
 
-    async def handle_incoming_messages(self):
+    async def listen(self):
         try:
             while True:
                 message = await self.ws.recv()
@@ -47,10 +48,11 @@ class Guru3Mgr:
                     self.logger.error(f"UNKNOWN ACTION! '{action}'")
                     raise KeyError(f"UNKNOWN ACTION! '{action}'")
 
-                self.logger.info(f'Guru3 queue has {js["queuelength"]} events.')
-
-                # query events from Guru3 via REST api
-                await self.request_events()
+                q_length = js["queuelength"]
+                self.logger.info(f'Guru3 queue has {q_length if q_length else "no"} events.')
+                if q_length:
+                    # query events from Guru3 via REST api
+                    await self.request_events()
         except asyncio.CancelledError:
             self.logger.info('Received termination signal, closing GURU3 WEBSOCKET...')
         finally:
