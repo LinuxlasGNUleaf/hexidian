@@ -1,17 +1,18 @@
 import logging
+import random
+
 import psycopg2
+import string
 
 
 class AsteriskManager:
     def __init__(self, config):
-        self.database = None
         self.config = config['asterisk']
         self.logger = logging.getLogger(__name__)
         with open(self.config['token_file'], 'r') as tk_file:
             self.user, self.password = tk_file.read().split('\n')
 
-    def establish_connection(self):
-        self.database = psycopg2.connect(
+        self.connection = psycopg2.connect(
             database="asterisk",
             host=self.config['host'],
             port=self.config['port'],
@@ -21,5 +22,36 @@ class AsteriskManager:
         self.logger.info('PostGreSQL database connection established.')
 
     def close(self):
-        self.database.close()
+        self.connection.close()
         self.logger.info('PostGreSQL database connection closed.')
+
+    def create_password(self):
+        chars = string.ascii_letters + string.digits
+        return ''.join([random.choice(chars) for _ in range(self.config['password_length'])])
+
+    def create_user(self, number):
+        sip_password = self.create_password()
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                f"insert into ps_aors (id, max_contacts) values ({number}, 1);")
+            cursor.execute(
+                f"insert into ps_auths (id, auth_type, password, username) values ({number}, 'userpass', '{sip_password}', {number});")
+            cursor.execute(
+                f"insert into ps_endpoints (id, aors, auth, context, allow, direct_media, dtls_auto_generate_cert, media_encryption) values ({number}, '{number}', '{number}', 'call-router', 'ulaw|alaw|g722|gsm|opus', 'no', 'yes', '');")
+        self.connection.commit()
+        self.logger.info(f'Created new SIP user via PostgreSQL with id {number} and password {sip_password}.')
+        return sip_password
+
+    def delete_user(self, number):
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"delete from ps_aors where id = {number};")
+            cursor.execute(f"delete from ps_auths where id = {number};")
+            cursor.execute(f"delete from ps_endpoints where id = {number};")
+        self.connection.commit()
+        self.logger.info(f'Deleted SIP user with id {number} via PostgreSQL.')
+
+    def query_password(self, number):
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"select password from ps_auths where id={number}")
+            sip_password = cursor.fetchone()
+        return sip_password

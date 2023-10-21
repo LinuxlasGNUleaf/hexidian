@@ -37,9 +37,6 @@ class EventHandler:
         # OMM task, responsible for establishing connection to Open Mobility Manager (DECT Manager)
         self.tasks.append(asyncio.create_task(self.omm_mgr.start_communication()))
 
-        # Asterisk DB connection, not asynchronous
-        self.asterisk_mgr.establish_connection()
-
         try:
             # gather all tasks
             await asyncio.gather(*self.tasks)
@@ -115,10 +112,9 @@ class EventHandler:
 
             # else, create a new user
             else:
-                self.logger.info(f'Attempting to create new user with number {number}...')
-                # TODO: SIP MAGIC!
-                # TODO: change SIP password to actual password!
-                self.omm_mgr.create_user(name=name, number=number, sip_user=number, sip_password=number)
+                self.logger.info(f'Attempting to create new user with number {number} in Asterisk and OMM...')
+                sip_password = self.asterisk_mgr.create_user(number)
+                self.omm_mgr.create_user(name=name, number=number, sip_user=number, sip_password=sip_password)
                 return True
 
     def do_delete_extension(self, event_data):
