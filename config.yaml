@@ -10,6 +10,7 @@ event_handler:
   #  RENAME_EXTENSION
   #  UNSUBSCRIBE_DEVICE
   ignored_msgtypes: ['SYNC_STARTED', 'SYNC_ENDED', 'UPDATE_CALLGROUP']
+  collect_ppns_interval: 10
 
 guru3:
   host: 10.43.42.10
@@ -18,7 +19,7 @@ guru3:
   tls: false
 
 omm:
-  host: 10.40.42.55
+  host: 10.43.42.55
   port: 12622
   token_file: omm.tk
 

@@ -1,7 +1,10 @@
 import asyncio
 import logging
 import os
+import random
+import string
 
+from AsteriskMgr import AsteriskManager
 from python_mitel.OMMClient import OMMClient
 from python_mitel.types import PPUser
 
@@ -16,16 +19,17 @@ class OMMMgr:
         with open(self.config['token_file'], 'r') as token_file:
             self.user, self.password = token_file.read().split('\n')
 
-        self.temp_users: dict[str, PPUser] = {}
         self.users: dict[str, PPUser] = {}
 
-    async def start_communication(self):
+    async def start_communication(self, request_lock: asyncio.Lock):
         try:
             self.omm.login(user=self.user, password=self.password, ommsync=True)
             self.logger.info('Successfully logged into OMM')
             self.logger.info("OMM: " + self.omm.get_systemname())
             self.logger.info("Reading users from OMM...")
             self.read_users()
+            request_lock.release()
+
             self.logger.info('Allowing subscription...')
             while True:
                 self.logger.debug(f'Result of subscription action: {self.omm.set_subscription("configured")}')
@@ -61,7 +65,7 @@ class OMMMgr:
         self.logger.info(f'Successfully updated OMM user info for user {user.uid} with number {number}.')
         return user
 
-    def create_user(self, name, number, token, sip_user, sip_password):
+    def create_user(self, name, number, sip_user, sip_password, token=None):
         user_data = self.omm.create_user(name=name,
                                          number=number,
                                          desc1='GURU_MGR',
@@ -82,10 +86,7 @@ class OMMMgr:
         self.logger.info(f'Moved OMM user from number {old_number} to number {new_number}.')
         return user
 
-    def transfer_pp(self, from_number, to_number):
-        from_user = self.users[from_number]
-        to_user = self.users[to_number]
-
+    def transfer_pp(self, from_uid: int, to_uid: int, ppn: int):
         # transfer pp from one user to the other
-        self.omm.detach_user_device(int(from_user.uid), int(from_user.ppn))
-        self.omm.attach_user_device(int(to_user.uid), int(to_user.ppn))
+        self.omm.detach_user_device(uid=from_uid, ppn=ppn)
+        self.omm.attach_user_device(uid=to_uid, ppn=ppn)

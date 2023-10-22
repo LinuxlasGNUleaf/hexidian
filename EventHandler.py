@@ -1,6 +1,7 @@
 import asyncio
 import logging
-import threading
+import random
+import string
 
 from Guru3Mgr import Guru3Mgr
 from OMMMgr import OMMMgr
@@ -32,20 +33,27 @@ class EventHandler:
 
     async def run_tasks(self):
         self.tasks = []
+        request_lock = asyncio.Lock()
+        await request_lock.acquire()
 
         # Registration Webserver task, starts a webserver to receive info from Asterisk
         self.tasks.append(asyncio.create_task(self.registration_mgr.run_server()))
 
         # Guru3 task, responsible for pulling events from frontend and marking them as done
-        self.tasks.append(asyncio.create_task(self.guru3_mgr.run()))
+        self.tasks.append(asyncio.create_task(self.guru3_mgr.run(request_lock=request_lock)))
 
         # EventHandler task, responsible for distributing incoming messages from Guru3
         # to the responsible backend manager (OMM or Asterisk DB)
         self.tasks.append(asyncio.create_task(self.distribute_guru3_messages()))
 
         # OMM task, responsible for establishing connection to Open Mobility Manager (DECT Manager)
-        self.tasks.append(asyncio.create_task(self.omm_mgr.start_communication()))
+        self.tasks.append(asyncio.create_task(self.omm_mgr.start_communication(request_lock=request_lock)))
 
+        # Collect unbound PPNs task, collects unbound devices in OMM and assigns them temp accounts
+        self.tasks.append(asyncio.create_task(self.query_unbound_ppns()))
+
+        # Handle Device Registrations
+        self.tasks.append(asyncio.create_task(self.handle_device_registrations()))
         try:
             # gather all tasks
             await asyncio.gather(*self.tasks)
@@ -86,18 +94,19 @@ class EventHandler:
         except asyncio.CancelledError:
             self.logger.info('Received termination signal, GURU3_DISTRIBUTOR closed.')
 
-    async def handle_registration_messages(self):
+    async def handle_device_registrations(self):
         try:
             while True:
                 msg = await self.registration_queue.get()
-                temp_number = msg['number']
-                token = msg['token']
+                temp_number = msg['callerid']
+                token = msg['token'][4:]
                 # find OMM user with the temporary number
                 from_user = self.omm_mgr.omm.find_user({'num': temp_number})
                 # find OMM user with the corresponding token
                 to_user = self.omm_mgr.omm.find_user({'hierarchy2': token})
+                self.logger.info(f'Move device from {temp_number} to {to_user.num}')
                 # transfer PP to real user
-                self.omm_mgr.transfer_pp(from_user, to_user)
+                self.omm_mgr.transfer_pp(int(from_user.uid), int(to_user.uid), int(from_user.ppn))
                 # delete temporary user, both in OMM and Asterisk
                 self.omm_mgr.delete_user(temp_number)
                 self.asterisk_mgr.delete_user(temp_number)
@@ -186,3 +195,26 @@ class EventHandler:
         # TODO: SIP MAGIC!
         # TODO: OMM MAGIC!
         return
+
+    def register_devices(self):
+        for device in self.omm_mgr.omm.get_devices():
+            if device.relType != 'Unbound':
+                continue
+            temp_number = '010' + ''.join([random.choice(string.digits) for _ in range(5)])
+            temp_password = self.asterisk_mgr.create_password()
+            while self.asterisk_mgr.check_for_user(temp_number):
+                temp_number = '010' + ''.join([random.choice(string.digits) for _ in range(5)])
+
+            omm_user = self.omm_mgr.create_user(name='Unbound Handset', number=temp_number, sip_user=temp_number,
+                                                sip_password=temp_password)
+            self.omm_mgr.omm.attach_user_device(uid=int(omm_user.uid), ppn=int(device.ppn))
+            self.asterisk_mgr.create_user(number=temp_number, sip_password=temp_password, temporary=True)
+
+    async def query_unbound_ppns(self):
+        try:
+            while True:
+                self.logger.info('Searching for unbound devices...')
+                self.register_devices()
+                await asyncio.sleep(self.own_config['collect_ppns_interval'])
+        except asyncio.CancelledError:
+            self.logger.info('Stopped polling unbound devices.')

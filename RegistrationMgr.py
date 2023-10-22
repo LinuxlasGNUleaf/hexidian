@@ -1,11 +1,9 @@
 import asyncio
 import logging
-import nest_asyncio
+import pprint
 
 import aiohttp.web_request
 from aiohttp import web
-
-nest_asyncio.apply()
 
 
 class RegistrationMgr:
@@ -13,7 +11,6 @@ class RegistrationMgr:
         self.config = config['registration']
         self.queue = queue
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.WARNING)
         self.app = web.Application()
         self.app.add_routes([web.post('/', self.handle_post), web.get('/', self.handle_get)])
         self.port = self.config['port']
@@ -26,11 +23,12 @@ class RegistrationMgr:
 
     async def handle_post(self, request: aiohttp.web_request.Request):
         if not request.content_type == 'application/json':
+            self.logger.info('Discarding POST')
             return web.Response(text='NAK', status=400)
         json_payload = await request.json()
-        if 'number' not in json_payload or 'token' not in json_payload:
+        if 'callerid' not in json_payload or 'token' not in json_payload:
             return web.Response(text='NAK', status=417)
-        number = json_payload['number']
+        number = json_payload['callerid']
         token = json_payload['token']
         self.logger.info(f'Got new registration from Asterisk: number {number} called token {token}.')
         await self.queue.put(json_payload)

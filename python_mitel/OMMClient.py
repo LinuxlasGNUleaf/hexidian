@@ -1,3 +1,4 @@
+import logging
 from threading import Thread, Event, Lock
 from time import sleep
 from events import Events
@@ -519,7 +520,7 @@ class OMMClient(Events):
         else:
             return False
 
-    def detach_user_device(self, uid, ppn):
+    def detach_user_device(self, uid: int, ppn: int):
         """ detaches an user profile from an existing device
 
         This only works if the OMM login has been performed in OMM sync mode
@@ -560,7 +561,7 @@ class OMMClient(Events):
         else:
             return False
 
-    def attach_user_device(self, uid, ppn):
+    def attach_user_device(self, uid: int, ppn: int):
         """ Connects an existing user profile to an existing subscribed device
 
         This only works if the OMM login has been performed in OMM sync mode
@@ -575,6 +576,7 @@ class OMMClient(Events):
             True if the operation was successful. False if it failed.
         """
         if (type(uid) is not int or type(ppn) is not int) or (ppn <= 0 or uid <= 0):
+            logging.getLogger().error('Params invalid!')
             return False
         messagedata = {
             "pp": {
@@ -679,9 +681,6 @@ class OMMClient(Events):
             return True
         else:
             return False
-
-    def encrypt_pin(self, pin):
-        return encrypt_pin(pin, self._modulus, self._exponent)
 
     def delete_device(self, ppid):
         """ Delete a configured handset (pp)

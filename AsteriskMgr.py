@@ -33,16 +33,17 @@ class AsteriskManager:
         chars = string.ascii_letters + string.digits
         return ''.join([random.choice(chars) for _ in range(self.config['password_length'])])
 
-    def create_user(self, number, sip_password=None):
+    def create_user(self, number, sip_password=None, temporary=False):
         if not sip_password:
             sip_password = self.create_password()
+        router = 'call-router-temp' if temporary else 'call-router'
         with self.connection.cursor() as cursor:
             cursor.execute(
                 f"insert into ps_aors (id, max_contacts) values ('{number}', 1);")
             cursor.execute(
-                f"insert into ps_auths (id, auth_type, password, username) values ('{number}', 'userpass', '{sip_password}', {number});")
+                f"insert into ps_auths (id, auth_type, password, username) values ('{number}', 'userpass', '{sip_password}', '{number}');")
             cursor.execute(
-                f"insert into ps_endpoints (id, aors, auth, context, allow, direct_media, dtls_auto_generate_cert) values ('{number}', '{number}', '{number}', 'call-router', 'ulaw|alaw|g722|gsm|opus', 'no', 'yes');")
+                f"insert into ps_endpoints (id, aors, auth, context, allow, direct_media, dtls_auto_generate_cert) values ('{number}', '{number}', '{number}', '{router}', 'ulaw|alaw|g722|gsm|opus', 'no', 'yes');")
         self.connection.commit()
         self.logger.info(f'Created new SIP user via PostgreSQL with id {number} and password {sip_password}.')
         return sip_password

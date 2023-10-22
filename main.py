@@ -4,6 +4,9 @@ import yaml
 
 from EventHandler import EventHandler
 
+with open('logo.txt', 'r') as logo_file:
+    print(logo_file.read())
+
 with open('config.yaml', 'r') as cfg_stream:
     try:
         print('parsing config file...')
@@ -16,6 +19,5 @@ logging.basicConfig(format='[%(asctime)s] [%(levelname)-8s] --- [%(module)-10s]:
                     level=logging.INFO,
                     handlers=[logging.FileHandler(config['log_file']), logging.StreamHandler()])
 logger = logging.getLogger(__name__)
-
 event_handler = EventHandler(config)
 event_handler.start()

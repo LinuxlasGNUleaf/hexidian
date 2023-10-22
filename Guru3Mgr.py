@@ -26,7 +26,9 @@ class Guru3Mgr:
         self.events = input_queue
         self.active_event_ids = set()
 
-    async def run(self):
+    async def run(self, request_lock: asyncio.Lock):
+        # wait for other stuff to start
+        await request_lock.acquire()
         # pull events waiting in queue BEFORE websocket is live, so as not to trigger tons of requests
         await self.request_events()
         # start websocket
