@@ -10,7 +10,7 @@ class AsteriskManager:
         self.config = config['asterisk']
         self.logger = logging.getLogger(__name__)
         with open(self.config['token_file'], 'r') as tk_file:
-            self.user, self.password = tk_file.read().split('\n')
+            self.user, self.password = tk_file.readlines()
 
         try:
             self.connection = psycopg2.connect(
