@@ -16,8 +16,8 @@ class OMMMgr:
         self.omm = OMMClient(host=self.config['host'], port=self.config['port'])
         if not os.path.exists(self.config['token_file']):
             raise FileNotFoundError("Token File for OMM manager not found!")
-        with open(self.config['token_file'], 'r') as token_file:
-            self.user, self.password = token_file.readlines()
+        with open(self.config['token_file'], 'r') as tk_file:
+            self.user, self.password = [line.strip() for line in tk_file.readlines()]
 
         self.users: dict[str, PPUser] = {}
 
