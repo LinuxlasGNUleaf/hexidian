@@ -16,11 +16,12 @@ class OMMMgr:
         with open(self.config['token_file'], 'r') as token_file:
             self.user, self.password = token_file.read().split('\n')
 
+        self.temp_users: dict[str, PPUser] = {}
         self.users: dict[str, PPUser] = {}
 
     async def start_communication(self):
         try:
-            self.omm.login(user=self.user, password=self.password)
+            self.omm.login(user=self.user, password=self.password, ommsync=True)
             self.logger.info('Successfully logged into OMM')
             self.logger.info("OMM: " + self.omm.get_systemname())
             self.logger.info("Reading users from OMM...")
@@ -51,18 +52,20 @@ class OMMMgr:
         self.logger.info(f'deleted OMM user {user.uid}.')
         return user
 
-    def update_user_info(self, number, name):
+    def update_user_info(self, number, name, token):
         user = self.users[number]
         user.name = name
+        user.hierarchy2 = token
         self.users[number] = user
         self.omm.update_user(user)
         self.logger.info(f'Successfully updated OMM user info for user {user.uid} with number {number}.')
         return user
 
-    def create_user(self, name, number, sip_user, sip_password):
+    def create_user(self, name, number, token, sip_user, sip_password):
         user_data = self.omm.create_user(name=name,
                                          number=number,
                                          desc1='GURU_MGR',
+                                         desc2=token,
                                          sip_user=sip_user,
                                          sip_password=sip_password)
         self.users[number] = self.omm.get_user(user_data['uid'])
@@ -78,3 +81,11 @@ class OMMMgr:
         self.omm.update_user(user)
         self.logger.info(f'Moved OMM user from number {old_number} to number {new_number}.')
         return user
+
+    def transfer_pp(self, from_number, to_number):
+        from_user = self.users[from_number]
+        to_user = self.users[to_number]
+
+        # transfer pp from one user to the other
+        self.omm.detach_user_device(int(from_user.uid), int(from_user.ppn))
+        self.omm.attach_user_device(int(to_user.uid), int(to_user.ppn))

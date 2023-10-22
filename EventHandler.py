@@ -86,6 +86,24 @@ class EventHandler:
         except asyncio.CancelledError:
             self.logger.info('Received termination signal, GURU3_DISTRIBUTOR closed.')
 
+    async def handle_registration_messages(self):
+        try:
+            while True:
+                msg = await self.registration_queue.get()
+                temp_number = msg['number']
+                token = msg['token']
+                # find OMM user with the temporary number
+                from_user = self.omm_mgr.omm.find_user({'num': temp_number})
+                # find OMM user with the corresponding token
+                to_user = self.omm_mgr.omm.find_user({'hierarchy2': token})
+                # transfer PP to real user
+                self.omm_mgr.transfer_pp(from_user, to_user)
+                # delete temporary user, both in OMM and Asterisk
+                self.omm_mgr.delete_user(temp_number)
+                self.asterisk_mgr.delete_user(temp_number)
+        except asyncio.CancelledError:
+            self.logger.info('Received termination signal, REGISTRATION_HANDLER closed.')
+
     def do_update_extension(self, event_data):
         # extract event info
         ext_type = event_data['type']
@@ -132,11 +150,12 @@ class EventHandler:
     def do_dect_extension_update(self, event_data):
         name = event_data['name']
         number = event_data['number']
+        token = event_data['token']
 
         # if user already exists, update user entry
         if number in self.omm_mgr.users:
             self.logger.info('OMM user already present, updating user info instead...')
-            self.omm_mgr.update_user_info(number=number, name=name)
+            self.omm_mgr.update_user_info(number=number, name=name, token=token)
 
         # else, create a new user
         else:
@@ -146,7 +165,7 @@ class EventHandler:
 
             self.logger.info(f'Attempting to create new user with number {number} in Asterisk and OMM...')
             sip_password = self.asterisk_mgr.create_user(number=number)
-            self.omm_mgr.create_user(name=name, number=number, sip_user=number, sip_password=sip_password)
+            self.omm_mgr.create_user(name=name, number=number, token=token, sip_user=number, sip_password=sip_password)
 
     def do_delete_extension(self, event_data):
         number = event_data['number']
