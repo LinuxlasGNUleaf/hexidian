@@ -1,10 +1,7 @@
 import asyncio
 import logging
 import os
-import random
-import string
 
-from AsteriskMgr import AsteriskManager
 from python_mitel.OMMClient import OMMClient
 from python_mitel.types import PPUser
 
@@ -24,21 +21,16 @@ class OMMMgr:
     async def start_communication(self, request_lock: asyncio.Lock):
         try:
             self.omm.login(user=self.user, password=self.password, ommsync=True)
-            self.logger.info('Successfully logged into OMM')
-            self.logger.info("OMM: " + self.omm.get_systemname())
-            self.logger.info("Reading users from OMM...")
             self.read_users()
             request_lock.release()
 
-            self.logger.info('Allowing subscription...')
             while True:
-                self.logger.debug(f'Result of subscription action: {self.omm.set_subscription("configured")}')
-                await asyncio.sleep(60)
+                self.omm.set_subscription("configured")
+                await asyncio.sleep(15)
         except asyncio.CancelledError:
             pass
         finally:
             self.omm.logout()
-            self.logger.info('Successfully logged out of OMM.')
 
     def read_users(self):
         self.users = {}
@@ -47,13 +39,11 @@ class OMMMgr:
             if user.hierarchy1 != 'GURU_MGR':
                 continue
             self.users[user.num] = user
-        self.logger.info(f'Found {len(self.users.keys()) if self.users else "no"} user(s) managed by guru-manager.')
 
     def delete_user(self, number):
         user = self.users[number]
         del self.users[number]
         self.omm.delete_user(user.uid)
-        self.logger.info(f'deleted OMM user {user.uid}.')
         return user
 
     def update_user_info(self, number, name, token):
@@ -62,7 +52,6 @@ class OMMMgr:
         user.hierarchy2 = token
         self.users[number] = user
         self.omm.update_user(user)
-        self.logger.info(f'Successfully updated OMM user info for user {user.uid} with number {number}.')
         return user
 
     def create_user(self, name, number, sip_user, sip_password, token=None):
@@ -73,7 +62,6 @@ class OMMMgr:
                                          sip_user=sip_user,
                                          sip_password=sip_password)
         self.users[number] = self.omm.get_user(user_data['uid'])
-        self.logger.info(f'Created new OMM user with ID {user_data["uid"]}, number: {number}')
         return self.users[number]
 
     def move_user(self, old_number, new_number):
@@ -83,7 +71,6 @@ class OMMMgr:
         user.sipAuthId = new_number
         self.users[new_number] = user
         self.omm.update_user(user)
-        self.logger.info(f'Moved OMM user from number {old_number} to number {new_number}.')
         return user
 
     def transfer_pp(self, from_uid: int, to_uid: int, ppn: int):

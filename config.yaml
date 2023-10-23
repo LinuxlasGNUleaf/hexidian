@@ -13,7 +13,7 @@ event_handler:
   collect_ppns_interval: 10
 
 guru3:
-  host: 10.43.42.10
+  host: 10.44.42.10
   port: 8086
   token_file: guru3.tk
   tls: false
@@ -28,6 +28,7 @@ asterisk:
   port: 5432
   token_file: asterisk.tk
   password_length: 10
+  temp_num_length: 5
 
 registration:
   port: 4242

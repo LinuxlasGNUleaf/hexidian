@@ -1,11 +1,10 @@
 import logging
-import sys
 import yaml
 
 from EventHandler import EventHandler
 
 with open('logo.txt', 'r') as logo_file:
-    print(logo_file.read())
+    print(f'\033[91m{logo_file.read()}\033[0m')
 
 with open('config.yaml', 'r') as cfg_stream:
     try:
@@ -15,6 +14,7 @@ with open('config.yaml', 'r') as cfg_stream:
         print(f'While parsing the config file, the following exception occurred:')
         raise exc
 
+print(f'starting to log to \'{config["log_file"]}\' and stdout.')
 logging.basicConfig(format='[%(asctime)s] [%(levelname)-8s] --- [%(module)-10s]: %(message)s',
                     level=logging.INFO,
                     handlers=[logging.FileHandler(config['log_file']), logging.StreamHandler()])

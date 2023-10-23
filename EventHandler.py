@@ -1,8 +1,7 @@
 import asyncio
 import logging
-import random
-import string
 
+import utils
 from Guru3Mgr import Guru3Mgr
 from OMMMgr import OMMMgr
 from AsteriskMgr import AsteriskManager
@@ -11,11 +10,12 @@ from RegistrationMgr import RegistrationMgr
 
 class EventHandler:
     def __init__(self, config):
+        self.all_config = config
         self.own_config = config['event_handler']
-        self.input_queue = asyncio.Queue()
+        self.event_queue = asyncio.Queue()
         self.registration_queue = asyncio.Queue()
 
-        self.guru3_mgr = Guru3Mgr(config, input_queue=self.input_queue)
+        self.guru3_mgr = Guru3Mgr(config, event_queue=self.event_queue)
         self.omm_mgr = OMMMgr(config)
         self.asterisk_mgr = AsteriskManager(config)
         self.registration_mgr = RegistrationMgr(config, self.registration_queue)
@@ -27,7 +27,6 @@ class EventHandler:
         try:
             asyncio.run(self.run_tasks())
         except KeyboardInterrupt:
-            self.logger.info("Cancelling tasks...")
             for task in self.tasks:
                 task.cancel()
 
@@ -64,7 +63,7 @@ class EventHandler:
         try:
             while True:
                 # wait for new event in queue
-                event = await self.input_queue.get()
+                event = await self.event_queue.get()
                 event_id = event['id']
                 event_type = event['type']
                 event_data = event['data']
@@ -72,7 +71,6 @@ class EventHandler:
                 # some events can be safely ignored and reported back to Guru3 as done
                 if event_type in self.own_config['ignored_msgtypes']:
                     self.guru3_mgr.mark_event_complete(event_id)
-                    self.logger.info(f'{event_type} ignored internally and reported as processed to Guru3.')
                     continue
 
                 # =====> CALL EVENT PROCESSORS
@@ -85,14 +83,13 @@ class EventHandler:
                 elif event_type == 'UNSUBSCRIBE_DEVICE':
                     self.do_unsubscribe_device(event_data)
                 else:
-                    self.logger.error(f'Event unknown! ' + str(event))
-                    raise RuntimeError(f'Error while EventHandler was processing event {event_id} ({event_type})')
+                     raise RuntimeError(f'Unknown event type occurred while EventHandler was processing event {event_id}')
 
                 # mark event done in Guru3
                 self.guru3_mgr.mark_event_complete(event_id)
 
         except asyncio.CancelledError:
-            self.logger.info('Received termination signal, GURU3_DISTRIBUTOR closed.')
+            pass
 
     async def handle_device_registrations(self):
         try:
@@ -104,14 +101,13 @@ class EventHandler:
                 from_user = self.omm_mgr.omm.find_user({'num': temp_number})
                 # find OMM user with the corresponding token
                 to_user = self.omm_mgr.omm.find_user({'hierarchy2': token})
-                self.logger.info(f'Move device from {temp_number} to {to_user.num}')
                 # transfer PP to real user
                 self.omm_mgr.transfer_pp(int(from_user.uid), int(to_user.uid), int(from_user.ppn))
                 # delete temporary user, both in OMM and Asterisk
                 self.omm_mgr.delete_user(temp_number)
                 self.asterisk_mgr.delete_user(temp_number)
         except asyncio.CancelledError:
-            self.logger.info('Received termination signal, REGISTRATION_HANDLER closed.')
+            pass
 
     def do_update_extension(self, event_data):
         # extract event info
@@ -122,7 +118,6 @@ class EventHandler:
 
         # if new extension type is not DECT or SIP, determine whether the old user needs to be deleted
         if ext_type not in ['DECT', 'SIP']:
-            self.logger.warning('Extension is neither DECT nor SIP, deleting corresponding extensions!')
             if number in self.omm_mgr.users:
                 self.omm_mgr.delete_user(number)
             if self.asterisk_mgr.check_for_user(number):
@@ -143,17 +138,14 @@ class EventHandler:
 
         # delete DECT extension, if present
         if number in self.omm_mgr.users:
-            self.logger.info("Deleting OMM user with the same number as SIP extension.")
             self.omm_mgr.delete_user(number=number)
 
         # SIP extension already exists, only a password update is required
         if self.asterisk_mgr.check_for_user(number=number):
-            self.logger.info("SIP extension update, syncing password")
             self.asterisk_mgr.update_password(number=number, new_password=password)
 
         # new SIP extension
         else:
-            self.logger.info("New SIP extension, creating SIP user with password created by Guru3")
             self.asterisk_mgr.create_user(number=number, sip_password=password)
 
     def do_dect_extension_update(self, event_data):
@@ -163,7 +155,6 @@ class EventHandler:
 
         # if user already exists, update user entry
         if number in self.omm_mgr.users:
-            self.logger.info('OMM user already present, updating user info instead...')
             self.omm_mgr.update_user_info(number=number, name=name, token=token)
 
         # else, create a new user
@@ -172,7 +163,6 @@ class EventHandler:
             if self.asterisk_mgr.check_for_user(number=number):
                 self.asterisk_mgr.delete_user(number=number)
 
-            self.logger.info(f'Attempting to create new user with number {number} in Asterisk and OMM...')
             sip_password = self.asterisk_mgr.create_user(number=number)
             self.omm_mgr.create_user(name=name, number=number, token=token, sip_user=number, sip_password=sip_password)
 
@@ -200,10 +190,10 @@ class EventHandler:
         for device in self.omm_mgr.omm.get_devices():
             if device.relType != 'Unbound':
                 continue
-            temp_number = '010' + ''.join([random.choice(string.digits) for _ in range(5)])
-            temp_password = self.asterisk_mgr.create_password()
+            temp_number = f'010' + utils.create_password('num', self.all_config['asterisk']['temp_num_length'])
+            temp_password = utils.create_password('alphanum', self.all_config['asterisk']['password_length'])
             while self.asterisk_mgr.check_for_user(temp_number):
-                temp_number = '010' + ''.join([random.choice(string.digits) for _ in range(5)])
+                temp_number = f'010' + utils.create_password('num', self.all_config['asterisk']['temp_num_length'])
 
             omm_user = self.omm_mgr.create_user(name='Unbound Handset', number=temp_number, sip_user=temp_number,
                                                 sip_password=temp_password)
@@ -213,8 +203,7 @@ class EventHandler:
     async def query_unbound_ppns(self):
         try:
             while True:
-                self.logger.info('Searching for unbound devices...')
                 self.register_devices()
                 await asyncio.sleep(self.own_config['collect_ppns_interval'])
         except asyncio.CancelledError:
-            self.logger.info('Stopped polling unbound devices.')
+            pass

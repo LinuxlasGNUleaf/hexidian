@@ -4,4 +4,4 @@ rsa>=4.8
 events>=0.5
 requests>=2.30.0
 psycopg2>=2.9.9
-aiohttp>=3.8.4
+aiohttp

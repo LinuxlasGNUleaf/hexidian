@@ -8,3 +8,4 @@
   ███    █▀      ██████████ ████       ███▄ █▀   ████████▀  █▀     ███    █▀   ▀█   █▀
 
   Written in Blood and Python
+    by Luca Lutz and Jakob Weiß

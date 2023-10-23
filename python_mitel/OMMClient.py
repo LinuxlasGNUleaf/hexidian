@@ -576,7 +576,6 @@ class OMMClient(Events):
             True if the operation was successful. False if it failed.
         """
         if (type(uid) is not int or type(ppn) is not int) or (ppn <= 0 or uid <= 0):
-            logging.getLogger().error('Params invalid!')
             return False
         messagedata = {
             "pp": {
