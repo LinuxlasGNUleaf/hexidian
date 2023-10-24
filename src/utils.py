@@ -19,4 +19,4 @@ def create_password(pw_type: str, length: int):
         pool = string.digits + string.ascii_uppercase
     else:
         pool = string.digits + string.ascii_letters + string.punctuation
-    ''.join([random.choice(pool) for _ in range(length)])
+    return ''.join([random.choice(pool) for _ in range(length)])
