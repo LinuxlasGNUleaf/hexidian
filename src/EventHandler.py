@@ -53,6 +53,8 @@ class EventHandler:
 
         # Handle Device Registrations
         self.tasks.append(asyncio.create_task(self.handle_device_registrations()))
+
+        self.logger.info('Running all configured tasks...')
         try:
             # gather all tasks
             await asyncio.gather(*self.tasks)
@@ -61,6 +63,7 @@ class EventHandler:
 
     async def distribute_guru3_messages(self):
         try:
+            self.logger.info('Listening for inbound Guru3 messages.')
             while True:
                 # wait for new event in queue
                 event = await self.event_queue.get()
@@ -83,7 +86,8 @@ class EventHandler:
                 elif event_type == 'UNSUBSCRIBE_DEVICE':
                     self.do_unsubscribe_device(event_data)
                 else:
-                     raise RuntimeError(f'Unknown event type occurred while EventHandler was processing event {event_id}')
+                    raise RuntimeError(
+                        f'Unknown event type occurred while EventHandler was processing event {event_id}')
 
                 # mark event done in Guru3
                 self.guru3_mgr.mark_event_complete(event_id)
@@ -93,6 +97,7 @@ class EventHandler:
 
     async def handle_device_registrations(self):
         try:
+            self.logger.info('Now listening for device registrations.')
             while True:
                 msg = await self.registration_queue.get()
                 temp_number = msg['callerid']
@@ -202,6 +207,7 @@ class EventHandler:
 
     async def query_unbound_ppns(self):
         try:
+            self.logger.info('Now looking for unbound PPs.')
             while True:
                 self.register_devices()
                 await asyncio.sleep(self.own_config['collect_ppns_interval'])

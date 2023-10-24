@@ -27,6 +27,7 @@ class Guru3Mgr:
     async def run(self, request_lock: asyncio.Lock):
         # wait for other relevant managers to start
         await request_lock.acquire()
+        self.logger.info('Requesting Guru3 events now.')
         # get events waiting in queue BEFORE websocket is live, so as not to trigger tons of requests
         await self.request_events()
 

@@ -24,6 +24,7 @@ class RegistrationMgr:
         # create site on configured port
         site = aiohttp.web.TCPSite(runner, port=self.config['port'])
         await site.start()
+        self.logger.info('Startup complete.')
 
     async def handle_post(self, request: aiohttp.web_request.Request):
         # check request content type

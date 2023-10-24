@@ -23,6 +23,7 @@ class OMMMgr:
             self.omm.login(user=self.user, password=self.password, ommsync=True)
             self.read_users()
             request_lock.release()
+            self.logger.info('OMM Login complete.')
 
             while True:
                 self.omm.set_subscription("configured")

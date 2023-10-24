@@ -14,10 +14,10 @@ with open('config.yaml', 'r') as cfg_stream:
         print(f'While parsing the config file, the following exception occurred:')
         raise exc
 
-print(f'starting to log to \'{config["log_file"]}\' and stdout.')
-logging.basicConfig(format='[%(asctime)s] [%(levelname)-8s] --- [%(module)-10s]: %(message)s',
+logging.basicConfig(format='[%(asctime)s] [%(levelname)-8s] --- [%(module)-15s]: %(message)s',
                     level=logging.INFO,
                     handlers=[logging.FileHandler(config['log_file']), logging.StreamHandler()])
 logger = logging.getLogger(__name__)
+logger.info(f'starting to log to \'{config["log_file"]}\' and stdout.')
 event_handler = EventHandler(config)
 event_handler.start()
