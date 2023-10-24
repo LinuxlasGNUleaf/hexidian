@@ -21,5 +21,4 @@ def create_password(pw_type: str, length: int):
     else:
         pool = string.digits + string.ascii_letters + string.punctuation
     pw = ''.join([random.choice(pool) for _ in range(length)])
-    logging.getLogger(__name__).info(pw)
     return pw

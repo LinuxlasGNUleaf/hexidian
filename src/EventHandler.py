@@ -156,10 +156,12 @@ class EventHandler:
 
         # delete DECT extension, if present
         if number in self.omm_mgr.users:
+            self.logger.info(f'Deleting OMM user for {number} since it is now a SIP extension.')
             self.omm_mgr.delete_user(number=number)
 
         # SIP extension already exists, only a password update is required
         if self.asterisk_mgr.check_for_user(number=number):
+            self.logger.info(f'Updating Asterisk user {number}')
             self.asterisk_mgr.update_password(number=number, new_password=sip_password)
 
         # new SIP extension
@@ -182,7 +184,7 @@ class EventHandler:
             self.logger.info(f'Creating new Asterisk and OMM user for number {number}.')
             # make sure that any existing SIP user is being deleted beforehand
             if self.asterisk_mgr.check_for_user(number=number):
-                self.logger.warning('Deleting existing Asterisk user that would clash with the newly created one!')
+                self.logger.info('Deleting existing Asterisk user that would clash with the newly created one.')
                 self.asterisk_mgr.delete_user(number=number)
 
             sip_password = utils.create_password('alphanum', self.all_config['asterisk']['password_length'])
@@ -210,8 +212,7 @@ class EventHandler:
             self.omm_mgr.move_user(old_number, new_number)
 
     def do_unsubscribe_device(self, event_data):
-        # TODO: SIP MAGIC!
-        # TODO: OMM MAGIC!
+        self.logger.info(event_data.__dict__)
         return
 
     async def find_unbound_pps(self):
