@@ -14,7 +14,7 @@ event_handler:
 
 guru3:
   host: 10.44.42.10
-  port: 8086
+  port: 85
   token_file: secrets/guru3.tk
   tls: false
 
