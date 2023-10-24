@@ -38,7 +38,7 @@ class RegistrationMgr:
 
         # put json into queue and return 200 (OK)
         await self.queue.put(json_payload)
-        return web.Response(text='ACK', status=200)
+        return web.Response(text='extension added', status=200)
 
     async def handle_get(self, _):
         return web.Response(text='Use POST to send a JSON file with the token number called.', status=400)

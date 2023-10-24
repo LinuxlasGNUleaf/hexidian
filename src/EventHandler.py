@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import signal
 
 import utils
 from Guru3Mgr import Guru3Mgr
@@ -54,10 +55,14 @@ class EventHandler:
         # Handle Device Registrations
         self.tasks.append(asyncio.create_task(self.handle_device_registrations()))
 
+        # SIGTERM handler
+        asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, self.handle_sigterm)
+
         self.logger.info('Running all configured tasks...')
         try:
             # gather all tasks
             await asyncio.gather(*self.tasks)
+
         except asyncio.CancelledError:
             self.asterisk_mgr.close()
 
@@ -213,3 +218,9 @@ class EventHandler:
                 await asyncio.sleep(self.own_config['collect_ppns_interval'])
         except asyncio.CancelledError:
             pass
+
+    def handle_sigterm(self):
+        self.logger.info('Received SIGTERM, trying graceful shutdown...')
+        for task in self.tasks:
+            task.cancel()
+        self.asterisk_mgr.close()
