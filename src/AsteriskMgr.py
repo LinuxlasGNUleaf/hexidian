@@ -32,7 +32,7 @@ class AsteriskManager:
             cursor.execute(
                 f"insert into ps_auths (id, auth_type, password, username) values ('{number}', 'userpass', '{sip_password}', '{number}');")
             cursor.execute(
-                f"insert into ps_endpoints (id, aors, auth, context, allow) values ('{number}', '{number}', '{number}', '{call_router}', 'all');")
+                f"insert into ps_endpoints (id, aors, auth, context, allow, direct_media) values ('{number}', '{number}', '{number}', '{call_router}', '!all,g722,alaw,ulaw,gsm', 'no');")
         self.connection.commit()
 
     def delete_user(self, number):
