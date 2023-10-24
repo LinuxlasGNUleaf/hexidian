@@ -24,9 +24,7 @@ class AsteriskManager:
     def close(self):
         self.connection.close()
 
-    def create_user(self, number, sip_password=None, temporary=False):
-        if not sip_password:
-            sip_password = utils.create_password('alphanum', self.config['password_length'])
+    def create_user(self, number, sip_password, temporary=False):
         call_router = 'call-router-temp' if temporary else 'call-router'
         with self.connection.cursor() as cursor:
             cursor.execute(
@@ -36,7 +34,6 @@ class AsteriskManager:
             cursor.execute(
                 f"insert into ps_endpoints (id, aors, auth, context, allow, direct_media, dtls_auto_generate_cert) values ('{number}', '{number}', '{number}', '{call_router}', 'ulaw|alaw|g722|gsm|opus', 'no', 'yes');")
         self.connection.commit()
-        return sip_password
 
     def delete_user(self, number):
         with self.connection.cursor() as cursor:

@@ -1,3 +1,4 @@
+import logging
 import os.path
 import random
 import string
@@ -19,4 +20,6 @@ def create_password(pw_type: str, length: int):
         pool = string.digits + string.ascii_uppercase
     else:
         pool = string.digits + string.ascii_letters + string.punctuation
-    return ''.join([random.choice(pool) for _ in range(length)])
+    pw = ''.join([random.choice(pool) for _ in range(length)])
+    logging.getLogger(__name__).info(pw)
+    return pw
