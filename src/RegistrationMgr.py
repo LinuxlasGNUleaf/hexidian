@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 import aiohttp.web_request
@@ -6,10 +5,10 @@ from aiohttp import web
 
 
 class RegistrationMgr:
-    def __init__(self, config, registration_queue: asyncio.Queue):
+    def __init__(self, config, registration_callback):
         self.config = config['registration']
         self.logger = logging.getLogger(__name__)
-        self.queue = registration_queue
+        self.registration_callback = registration_callback
 
         # create web app, configure routes
         self.app = web.Application()
@@ -37,8 +36,11 @@ class RegistrationMgr:
             return web.Response(text='NAK', status=417)
 
         # put json into queue and return 200 (OK)
-        await self.queue.put(json_payload)
-        return web.Response(text='extension added', status=200)
+        ok = self.registration_callback(json_payload['callerid'], json_payload['token'])
+        if ok:
+            return web.Response(text='extension added', status=200)
+        else:
+            return web.Response(text='NAK', status=404)
 
     async def handle_get(self, _):
         return web.Response(text='Use POST to send a JSON file with the token number called.', status=400)
