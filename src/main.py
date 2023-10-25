@@ -3,7 +3,7 @@ import yaml
 
 from EventHandler import EventHandler
 
-with open('logo.txt', 'r') as logo_file:
+with open('logo.txt', 'r', encoding='utf8') as logo_file:
     print(f'\033[91m{logo_file.read()}\033[0m')
 
 with open('config.yaml', 'r') as cfg_stream:

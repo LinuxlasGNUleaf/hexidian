@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import signal
+from datetime import datetime
 
 import utils
 from Guru3Mgr import Guru3Mgr
@@ -52,7 +53,10 @@ class EventHandler:
         self.tasks.append(asyncio.create_task(self.find_unbound_pps()))
 
         # SIGTERM handler
-        asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, self.handle_sigterm)
+        try:
+            asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, self.handle_sigterm)
+        except NotImplementedError:
+            self.logger.warning('SIGTERM handler could not be registered, since your system does not support it.')
 
         self.logger.info('Running all configured tasks...')
         try:
@@ -71,6 +75,7 @@ class EventHandler:
                 event_id = event['id']
                 event_type = event['type']
                 event_data = event['data']
+                event_time = int(event['timestamp'])
 
                 # some events can be safely ignored and reported back to Guru3 as done
                 if event_type in self.own_config['ignored_msgtypes']:
@@ -89,7 +94,9 @@ class EventHandler:
                 else:
                     raise RuntimeError(
                         f'Unknown event type occurred while EventHandler was processing event {event_id}')
-
+                delta_time = datetime.now() - datetime.fromtimestamp(event_time)
+                delta_time = delta_time.seconds + delta_time.microseconds/1000000
+                self.logger.info(f'Event processed {delta_time} seconds after creation in Guru3')
                 # mark event done in Guru3
                 self.guru3_mgr.mark_event_complete(event_id)
 

@@ -73,5 +73,4 @@ class Guru3Mgr:
                                  data=f'Content-Disposition: form-data; name="acklist"\r\n\r\n{id_string}\r\n---')
         if response.status_code == 200:
             self.logger.info(f'Successfully marked event {event_id} as done in Guru3.')
-            if event_id in self.event_queue_ids:
-                self.event_queue_ids.remove(event_id)
+            self.event_queue_ids.remove(event_id)
