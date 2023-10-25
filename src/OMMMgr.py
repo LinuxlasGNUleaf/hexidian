@@ -1,9 +1,10 @@
 import asyncio
 import logging
-import os
 
 from python_mitel.OMMClient import OMMClient
 from python_mitel.types import PPUser
+
+import utils
 
 
 class OMMMgr:
@@ -11,16 +12,13 @@ class OMMMgr:
         self.config = config['omm']
         self.logger = logging.getLogger(__name__)
         self.omm = OMMClient(host=self.config['host'], port=self.config['port'])
-        if not os.path.exists(self.config['token_file']):
-            raise FileNotFoundError("Token File for OMM manager not found!")
-        with open(self.config['token_file'], 'r') as tk_file:
-            self.user, self.password = [line.strip() for line in tk_file.readlines()]
-
+        self.username = self.config['username']
+        self.password = utils.read_password_env(self.config['password_env'])
         self.users: dict[str, PPUser] = {}
 
     async def start_communication(self, request_lock: asyncio.Lock):
         try:
-            self.omm.login(user=self.user, password=self.password, ommsync=True)
+            self.omm.login(user=self.username, password=self.password, ommsync=True)
             self.read_users()
             request_lock.release()
             self.logger.info('OMM Login complete.')

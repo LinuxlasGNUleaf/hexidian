@@ -8,15 +8,14 @@ class AsteriskManager:
     def __init__(self, config):
         self.config = config['asterisk']
         self.logger = logging.getLogger(__name__)
-        self.user, self.password = utils.read_token_file(self.config['token_file'])
 
         try:
             self.connection = psycopg2.connect(
                 database='asterisk',
                 host=self.config['host'],
                 port=self.config['port'],
-                user=self.user,
-                password=self.password
+                user=self.config['username'],
+                password=utils.read_password_env(self.config['password_env'])
             )
         except psycopg2.OperationalError as exc:
             raise exc

@@ -1,14 +1,12 @@
-import os.path
+import os
 import random
 import string
 
 
-def read_token_file(token_file: str):
-    if not os.path.exists(token_file):
-        raise FileNotFoundError(f'Token File {token_file} not found!')
-    with open(token_file, 'r') as tk_file:
-        lines = [line.strip() for line in tk_file.readlines()]
-    return lines if len(lines) > 1 else lines[0]
+def read_password_env(env_name: str):
+    if env_name not in os.environ:
+        raise EnvironmentError(f'password env variable {env_name} is not set!')
+    return os.environ[env_name]
 
 
 def create_password(pw_type: str, length: int):

@@ -15,18 +15,20 @@ event_handler:
 guru3:
   host: 10.44.42.10
   port: 8585
-  token_file: secrets/guru3.tk
+  password_env: GURU_PW
   tls: false
 
 omm:
   host: 10.43.42.55
   port: 12622
-  token_file: secrets/omm.tk
+  username: omm
+  password_env: OMM_PW
 
 asterisk:
   host: 10.43.42.10
   port: 5432
-  token_file: secrets/asterisk.tk
+  username: asterisk
+  password_env: ASTERISK_PW
   password_length: 10
   temp_num_length: 5
 

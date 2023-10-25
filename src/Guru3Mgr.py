@@ -16,7 +16,7 @@ class Guru3Mgr:
         self.event_queue_ids = set()
 
         # prepare URI and port for websocket and REST connection
-        self.api_header = {'ApiKey': utils.read_token_file(self.config['token_file'])}
+        self.api_header = {'ApiKey': utils.read_password_env(self.config['password_env'])}
         port = self.config.get('port', '')
         port = ':' + str(port) if port else port
         tls = 's' if self.config['tls'] else ''
