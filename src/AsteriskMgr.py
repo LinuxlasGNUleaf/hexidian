@@ -24,6 +24,7 @@ class AsteriskManager:
         self.connection.close()
 
     def create_user(self, number, sip_password, temporary=False):
+        self.logger.info(f'Creating Asterisk user with number: {number}')
         call_router = 'call-router-temp' if temporary else 'call-router'
         with self.connection.cursor() as cursor:
             cursor.execute(
@@ -35,6 +36,7 @@ class AsteriskManager:
         self.connection.commit()
 
     def delete_user(self, number):
+        self.logger.info(f'Deleting Asterisk user {number}.')
         with self.connection.cursor() as cursor:
             cursor.execute(f"delete from ps_aors where id='{number}';")
             cursor.execute(f"delete from ps_auths where id='{number}';")
@@ -47,6 +49,7 @@ class AsteriskManager:
             return cursor.fetchone() is not None
 
     def move_user(self, old_number, new_number):
+        self.logger.info(f'Moving Asterisk user {old_number} to {new_number}.')
         with self.connection.cursor() as cursor:
             cursor.execute(f"update ps_aors set id='{new_number}' where id='{old_number}'")
             cursor.execute(f"update ps_auths set id='{new_number}', username='{new_number}' where id='{old_number}'")
@@ -54,6 +57,7 @@ class AsteriskManager:
         self.connection.commit()
 
     def update_password(self, number, new_password):
+        self.logger.info(f'Updating password for Asterisk user {number}.')
         with self.connection.cursor() as cursor:
             cursor.execute(f"update ps_auths set password='{new_password}' where id='{number}'")
         self.connection.commit()

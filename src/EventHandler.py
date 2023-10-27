@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import pprint
 import signal
 from datetime import datetime
 
@@ -77,8 +78,11 @@ class EventHandler:
                 event_data = event['data']
                 event_time = int(event['timestamp'])
 
+                self.logger.info(f'Now processing event {event_id} ({event_type}).')
+
                 # some events can be safely ignored and reported back to Guru3 as done
                 if event_type in self.own_config['ignored_msgtypes']:
+                    self.logger.info(f'Ignoring event of type {event_type} as per config.')
                     self.guru3_mgr.mark_event_complete(event_id)
                     continue
 
@@ -95,7 +99,7 @@ class EventHandler:
                     raise RuntimeError(
                         f'Unknown event type occurred while EventHandler was processing event {event_id}')
                 delta_time = datetime.now() - datetime.fromtimestamp(event_time)
-                delta_time = delta_time.seconds + delta_time.microseconds/1000000
+                delta_time = delta_time.seconds + delta_time.microseconds / 1000000
                 self.logger.info(f'Event processed {delta_time} seconds after creation in Guru3')
                 # mark event done in Guru3
                 self.guru3_mgr.mark_event_complete(event_id)
@@ -129,11 +133,11 @@ class EventHandler:
         # extract event info
         ext_type = event_data['type']
         number = event_data['number']
-        # trim name to length acceptable by OMM
-        event_data['name'] = event_data['name'][:19]
 
         # if new extension type is not DECT or SIP, determine whether the old user needs to be deleted
         if ext_type not in ['DECT', 'SIP']:
+            self.logger.warning(
+                f'Non-SIP/DECT extension update (type:{ext_type}), ignoring event and deleting old SIP and DECT entries for this number.')
             if number in self.omm_mgr.users:
                 self.omm_mgr.delete_user(number)
             if self.asterisk_mgr.check_for_user(number):
@@ -155,28 +159,26 @@ class EventHandler:
 
         # delete DECT extension, if present
         if number in self.omm_mgr.users:
-            self.logger.info(f'Deleting OMM user for {number} since it is now a SIP extension.')
             self.omm_mgr.delete_user(number=number)
 
         # SIP extension already exists, only a password update is required
         if self.asterisk_mgr.check_for_user(number=number):
-            self.logger.info(f'Updating Asterisk user {number}.')
             self.asterisk_mgr.update_password(number=number, new_password=sip_password)
 
         # new SIP extension
         else:
-            self.logger.info(f'Creating new Asterisk user {number}.')
             self.asterisk_mgr.create_user(number=number, sip_password=sip_password)
 
     def do_dect_extension_update(self, event_data):
-        name = event_data['name']
+        # trim name to length acceptable by OMM
+        name = event_data['name'][:19]
         number = event_data['number']
         token = event_data['token']
         self.logger.info(f'Processing DECT extension update for number {number}.')
 
         # if user already exists, update user entry
         if number in self.omm_mgr.users:
-            self.logger.info(f'Updating OMM user {number}.')
+            self.logger.info(f'Updating existing OMM user {number}.')
             self.omm_mgr.update_user_info(number=number, name=name, token=token)
 
         # else, create a new user
@@ -194,25 +196,24 @@ class EventHandler:
     def do_delete_extension(self, event_data):
         number = event_data['number']
         if self.asterisk_mgr.check_for_user(number):
-            self.logger.info(f'Deleting Asterisk user {number}.')
             self.asterisk_mgr.delete_user(number=number)
         if number in self.omm_mgr.users:
-            self.logger.info(f'Deleting OMM user {number}.')
             self.omm_mgr.delete_user(number=number)
 
     def do_rename_extension(self, event_data):
         old_number = event_data['old_extension']
         new_number = event_data['new_extension']
         if self.asterisk_mgr.check_for_user(old_number):
-            self.logger.info(f'Renaming extension from {old_number} to {new_number} in Asterisk.')
             self.asterisk_mgr.move_user(old_number, new_number)
 
         if old_number in self.omm_mgr.users:
-            self.logger.info(f'Renaming extension from {old_number} to {new_number} in OMM.')
             self.omm_mgr.move_user(old_number, new_number)
 
     def do_unsubscribe_device(self, event_data):
-        self.logger.info(event_data.__dict__)
+        number = event_data['extension']
+        user = self.omm_mgr.users[number]
+        pprint.pprint(user.__dict__)
+        # self.omm_mgr.omm.delete_device(user.ppn)
         return
 
     async def find_unbound_pps(self):

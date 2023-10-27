@@ -1,12 +1,22 @@
 import logging
+import os
+import pathlib
+
 import yaml
+import argparse
 
 from EventHandler import EventHandler
+
+parser = argparse.ArgumentParser(description='Hexidian is a backend tool to process GURU3 events and send them to the OMM and Asterisk DB.')
+parser.add_argument('--config', type=pathlib.Path, help='config file location')
+args = parser.parse_args()
+
+print(os.environ['OMM_PW'], os.environ['ASTERISK_PW'], os.environ['GURU_PW'])
 
 with open('logo.txt', 'r', encoding='utf8') as logo_file:
     print(f'\033[91m{logo_file.read()}\033[0m')
 
-with open('/config/config.yaml', 'r') as cfg_stream:
+with open(args.config.absolute(), 'r') as cfg_stream:
     try:
         print('parsing config file...')
         config = yaml.safe_load(cfg_stream)
