@@ -27,7 +27,7 @@ class AsteriskManager:
         call_router = 'call-router-temp' if temporary else 'call-router'
         with self.connection.cursor() as cursor:
             cursor.execute(
-                f"insert into ps_aors (id, max_contacts, remove_exisiting) values ('{number}', 1, 'yes');")
+                f"insert into ps_aors (id, max_contacts, remove_existing) values ('{number}', 1, 'yes');")
             cursor.execute(
                 f"insert into ps_auths (id, auth_type, password, username) values ('{number}', 'userpass', '{sip_password}', '{number}');")
             cursor.execute(
