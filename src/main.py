@@ -8,10 +8,8 @@ import argparse
 from EventHandler import EventHandler
 
 parser = argparse.ArgumentParser(description='Hexidian is a backend tool to process GURU3 events and send them to the OMM and Asterisk DB.')
-parser.add_argument('--config', type=pathlib.Path, help='config file location')
+parser.add_argument('--config', type=pathlib.Path, help='config file location', required=True)
 args = parser.parse_args()
-
-print(os.environ['OMM_PW'], os.environ['ASTERISK_PW'], os.environ['GURU_PW'])
 
 with open('logo.txt', 'r', encoding='utf8') as logo_file:
     print(f'\033[91m{logo_file.read()}\033[0m')

@@ -7,4 +7,4 @@ ADD src/ /app/
 
 WORKDIR /app
 
-CMD ["python", "main.py"]
+CMD ["python", "main.py", "--config", "/config/config.yaml"]

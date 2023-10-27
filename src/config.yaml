@@ -13,10 +13,10 @@ event_handler:
   collect_ppns_interval: 10
 
 guru3:
-  host: 10.44.42.10
-  port: 8585
+  host: guru3.hackwerk.fun
+  port: 443
   password_env: GURU_PW
-  tls: false
+  tls: true
 
 omm:
   host: 10.43.42.55
