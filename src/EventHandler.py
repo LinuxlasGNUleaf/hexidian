@@ -212,9 +212,12 @@ class EventHandler:
     def do_unsubscribe_device(self, event_data):
         number = event_data['extension']
         user = self.omm_mgr.users[number]
-        pprint.pprint(user.__dict__)
-        # self.omm_mgr.omm.delete_device(user.ppn)
-        return
+        self.logger.warning(f'PPN: {user.ppn}')
+        if user.ppn == 0:
+            self.logger.info('Discarding UNSUBSCRIBE_DEVICE since the user has no registered PP.')
+            return
+        self.logger.info(f'Unsubscribing PP (PPN:{user.ppn}) from user {user.num}.')
+        self.omm_mgr.omm.delete_device(user.ppn)
 
     async def find_unbound_pps(self):
         try:
