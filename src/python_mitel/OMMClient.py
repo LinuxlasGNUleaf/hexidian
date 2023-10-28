@@ -373,7 +373,7 @@ class OMMClient(Events):
         Returns:
             A generator that yields user records, one at a time.
         """
-        MAX_RECORDS = 20  # maximum possible request size, according to the AXI documentation
+        MAX_RECORDS = 10  # maximum possible request size, according to the AXI documentation
         while True:
             message, attributes, children = self._sendrequest(
                 "GetPPUser",
