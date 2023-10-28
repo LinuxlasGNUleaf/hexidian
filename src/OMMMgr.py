@@ -48,7 +48,7 @@ class OMMMgr:
         return user
 
     def update_user_info(self, number, name, token):
-        self.logger.info(f'Updating user info (name, token) for OMM user {number}.')
+        self.logger.info(f'Updating user info (name: {name}, token: {token}) for OMM user {number}.')
         user = self.users[number]
         user.name = name
         user.hierarchy2 = token
