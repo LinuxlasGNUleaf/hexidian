@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import pprint
 import signal
 from datetime import datetime
 
@@ -171,7 +170,7 @@ class EventHandler:
 
     def do_dect_extension_update(self, event_data):
         # trim name to length acceptable by OMM
-        name = event_data['name'][:19]
+        name = ascii(event_data['name'])[:19]
         number = event_data['number']
         token = event_data['token']
         self.logger.info(f'Processing DECT extension update for number {number}.')
