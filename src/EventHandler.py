@@ -11,7 +11,7 @@ from AsteriskMgr import AsteriskManager
 from RegistrationMgr import RegistrationMgr
 
 allowed_chars = string.punctuation + string.ascii_letters + string.digits + ' '
-print(allowed_chars)
+
 
 class EventHandler:
     def __init__(self, config):
@@ -173,7 +173,7 @@ class EventHandler:
 
     def do_dect_extension_update(self, event_data):
         # trim name to length acceptable by OMM
-        name = [char if char in allowed_chars else '?' for char in event_data['name']][:19]
+        name = ''.join([char if char in allowed_chars else '?' for char in event_data['name']])[:19]
         number = event_data['number']
         token = event_data['token']
         self.logger.info(f'Processing DECT extension update for number {number}.')

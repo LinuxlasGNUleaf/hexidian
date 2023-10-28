@@ -34,4 +34,3 @@ asterisk:
 
 registration:
   port: 4242
-  public: false
