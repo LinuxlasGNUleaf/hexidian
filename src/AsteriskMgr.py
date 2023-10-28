@@ -15,8 +15,10 @@ class AsteriskManager:
                 host=self.config['host'],
                 port=self.config['port'],
                 user=self.config['username'],
-                password=utils.read_password_env(self.config['password_env'])
+                password=utils.read_password_env(self.config['password_env']),
+
             )
+            self.logger.info(f'PostgreSQL server version: {self.connection.server_version}')
         except psycopg2.OperationalError as exc:
             raise exc
 
