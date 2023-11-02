@@ -97,6 +97,8 @@ class EventHandler:
                     self.do_rename_extension(event_data)
                 elif event_type == 'UNSUBSCRIBE_DEVICE':
                     self.do_unsubscribe_device(event_data)
+                elif event_type == 'UPDATE_CALLGROUP':
+                    self.do_update_callgroup(event_data)
                 else:
                     raise RuntimeError(
                         f'Unknown event type occurred while EventHandler was processing event {event_id}')
@@ -250,3 +252,7 @@ class EventHandler:
             task.cancel()
         self.asterisk_mgr.close()
         self.logger.info('Shutdown complete, goodbye.')
+
+    def do_update_callgroup(self, event_data):
+        self.logger.info(event_data)
+        pass

@@ -9,7 +9,7 @@ event_handler:
   #  UPDATE_CALLGROUP
   #  RENAME_EXTENSION
   #  UNSUBSCRIBE_DEVICE
-  ignored_msgtypes: ['SYNC_STARTED', 'SYNC_ENDED', 'UPDATE_CALLGROUP']
+  ignored_msgtypes: ['SYNC_STARTED', 'SYNC_ENDED']
   collect_ppns_interval: 10
 
 guru3:
@@ -25,7 +25,7 @@ omm:
   password_env: OMM_PW
 
 asterisk:
-  host: 10.43.42.10
+  host: 10.21.42.10
   port: 5432
   username: asterisk
   password_env: ASTERISK_PW
