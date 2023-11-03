@@ -288,12 +288,13 @@ class EventHandler:
         active_extensions = [ext['extension'] for ext in event_data['extensions'] if ext['active']]
         current_extensions = self.asterisk_mgr.fetch_callgroup_members(callgroup_number)
         self.logger.info(active_extensions + ['/'] + current_extensions)
+        self.logger.info(set(active_extensions + current_extensions))
         for ext in set(active_extensions + current_extensions):
             if ext in active_extensions and current_extensions:
                 continue
             if ext in active_extensions and ext not in current_extensions:
                 self.logger.info(f'Add member {ext} to callgroup {callgroup_number} in Asterisk DB.')
                 self.asterisk_mgr.add_user_to_callgroup(extension=ext, callgroup=callgroup_number)
-            elif ext not in active_extensions and ext in current_extensions:
+            else:
                 self.logger.info(f'Remove member {ext} from callgroup {callgroup_number} in Asterisk DB.')
                 self.asterisk_mgr.remove_user_from_callgroup(extension=ext, callgroup=callgroup_number)
