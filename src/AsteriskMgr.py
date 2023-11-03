@@ -95,7 +95,7 @@ class AsteriskManager:
     def fetch_callgroup_members(self, number):
         with self.connection.cursor() as cursor:
             cursor.execute(f"select extension from callgroup_members where callgroup='{number}'")
-            return cursor.fetchall()
+            return [ext[0] for ext in cursor.fetchall()]
 
     def add_user_to_callgroup(self, extension, callgroup):
         with self.connection.cursor() as cursor:
