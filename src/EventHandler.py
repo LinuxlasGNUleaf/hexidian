@@ -290,7 +290,7 @@ class EventHandler:
         self.logger.info(active_extensions + ['/'] + current_extensions)
         self.logger.info(set(active_extensions + current_extensions))
         for ext in set(active_extensions + current_extensions):
-            if ext in active_extensions and current_extensions:
+            if ext in active_extensions and ext in current_extensions:
                 continue
             if ext in active_extensions and ext not in current_extensions:
                 self.logger.info(f'Add member {ext} to callgroup {callgroup_number} in Asterisk DB.')
