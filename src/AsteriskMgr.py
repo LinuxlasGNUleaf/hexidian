@@ -68,7 +68,6 @@ class AsteriskManager:
         with self.connection.cursor() as cursor:
             cursor.execute(f"select extension from callgroups where extension='{number}'")
             return cursor.fetchone() is not None
-        pass
 
     def update_callgroup(self, number, name):
         with self.connection.cursor() as cursor:
