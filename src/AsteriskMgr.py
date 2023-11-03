@@ -63,3 +63,46 @@ class AsteriskManager:
         with self.connection.cursor() as cursor:
             cursor.execute(f"update ps_auths set password='{new_password}' where id='{number}'")
         self.connection.commit()
+
+    def check_for_callgroup(self, number):
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"select extension from callgroups where extension='{number}'")
+            return cursor.fetchone() is not None
+        pass
+
+    def update_callgroup(self, number, name):
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"update callgroups set name='{name}' where extension='{number}'")
+        self.connection.commit()
+
+    def create_callgroup(self, number, name):
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"insert into callgroups (extension, name) values ('{number}', '{name}')")
+        self.connection.commit()
+
+    def delete_callgroup(self, number):
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"delete from callgroups where extension={number}")
+            cursor.execute(f"delete from callgroup_members where extension={number}")
+        self.connection.commit()
+
+    def move_callgroup(self, old_number, new_number):
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"update callgroups set extension='{new_number}' where extension='{old_number}'")
+            cursor.execute(f"update callgroup_members set callgroup='{new_number}' where callgroup='{old_number}'")
+        self.connection.commit()
+
+    def fetch_callgroup_members(self, number):
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"select extension from callgroup_members where callgroup='{number}'")
+            return cursor.fetchall()
+
+    def add_user_to_callgroup(self, extension, callgroup):
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"insert into callgroup_members (extension, callgroup) values ('{extension}', '{callgroup}')")
+        self.connection.commit()
+
+    def remove_user_from_callgroup(self, extension, callgroup):
+        with self.connection.cursor() as cursor:
+            cursor.execute(f"delete from callgroup_members where extension='{extension}' AND callgroup='{callgroup}'")
+        self.connection.commit()

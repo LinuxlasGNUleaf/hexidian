@@ -202,7 +202,23 @@ class EventHandler:
             self.omm_mgr.create_user(name=name, number=number, token=token, sip_user=number, sip_password=sip_password)
 
     def do_group_extension_update(self, event_data):
-        self.logger.info(event_data)
+        number = event_data['number']
+        name = event_data['name']
+
+        # delete DECT extension, if present
+        if number in self.omm_mgr.users:
+            self.omm_mgr.delete_user(number=number)
+
+        # delete Asterisk user, if present
+        if self.asterisk_mgr.check_for_user(number):
+            self.asterisk_mgr.delete_user(number)
+
+        # if callgroup already exists, update entry
+        if self.asterisk_mgr.check_for_callgroup(number):
+            self.asterisk_mgr.update_callgroup(number, name)
+        # else, create new callgroup
+        else:
+            self.asterisk_mgr.create_callgroup(number)
 
     def do_delete_extension(self, event_data):
         number = event_data['number']
@@ -210,22 +226,28 @@ class EventHandler:
             self.asterisk_mgr.delete_user(number=number)
         if number in self.omm_mgr.users:
             self.omm_mgr.delete_user(number=number)
+        if self.asterisk_mgr.check_for_callgroup(number=number):
+            self.asterisk_mgr.delete_callgroup(number)
 
     def do_rename_extension(self, event_data):
         old_number = event_data['old_extension']
         new_number = event_data['new_extension']
-        if self.asterisk_mgr.check_for_user(old_number):
-            self.asterisk_mgr.move_user(old_number, new_number)
+        if self.asterisk_mgr.check_for_user(number=old_number):
+            self.asterisk_mgr.move_user(old_number=old_number, new_number=new_number)
 
         if old_number in self.omm_mgr.users:
             self.omm_mgr.move_user(old_number, new_number)
+
+        if self.asterisk_mgr.check_for_callgroup(old_number):
+            self.asterisk_mgr.move_callgroup(old_number, new_number)
 
     def do_unsubscribe_device(self, event_data):
         number = event_data['extension']
         user = self.omm_mgr.users[number]
         ppn = int(user.ppn)
         if ppn == 0:
-            self.logger.info('Discarding UNSUBSCRIBE_DEVICE since the user has no PP. (Get your mind out of the gutter!)')
+            self.logger.info(
+                'Discarding UNSUBSCRIBE_DEVICE since the user has no PP. (Get your mind out of the gutter!)')
             return
         self.logger.info(f'Unsubscribing PP (PPN:{ppn}) from user {user.num}.')
         self.omm_mgr.omm.delete_device(ppn)
@@ -261,5 +283,15 @@ class EventHandler:
         self.logger.info('Shutdown complete, goodbye.')
 
     def do_update_callgroup(self, event_data):
-        self.logger.info(event_data)
-        pass
+        callgroup_number = event_data['number']
+        self.logger.info('Updating callgroup in Asterisk\'s DB to reflect list of active members from Guru3.')
+        active_extensions = [ext['extension'] for ext in event_data['extensions'] if ext['active']]
+        current_extensions = self.asterisk_mgr.fetch_callgroup_members(callgroup_number)
+        self.logger.info(active_extensions+['/']+current_extensions)
+        for ext in active_extensions + current_extensions:
+            if ext in active_extensions and current_extensions:
+                continue
+            if ext in active_extensions and ext not in current_extensions:
+                self.asterisk_mgr.add_user_to_callgroup(ext, callgroup_number)
+            elif ext not in active_extensions and ext in current_extensions:
+                self.asterisk_mgr.remove_user_from_callgroup(ext, callgroup_number)
