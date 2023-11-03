@@ -1,7 +1,8 @@
+# syntax = docker/dockerfile:experimental
 FROM python:3.10
 
 ADD requirements.txt /tmp/
-RUN pip install -r /tmp/requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install -r /tmp/requirements.txt
 
 ADD src/ /app/
 
