@@ -80,7 +80,7 @@ class EventHandler:
                 event_data = event['data']
                 event_time = int(event['timestamp'])
 
-                self.logger.info(f'Now processing event {event_id} ({event_type}).')
+                self.logger.info(f'//== Now processing event {event_id} ({event_type}).')
 
                 # some events can be safely ignored and reported back to Guru3 as done
                 if event_type in self.own_config['ignored_msgtypes']:
@@ -101,12 +101,12 @@ class EventHandler:
                     self.do_update_callgroup(event_data)
                 else:
                     raise RuntimeError(
-                        f'Unknown event type occurred while EventHandler was processing event {event_id}')
+                        f'Unknown event type occurred while EventHandler was processing event {event_id}.')
                 delta_time = datetime.now() - datetime.fromtimestamp(event_time)
                 delta_time = delta_time.seconds + delta_time.microseconds / 1000000
-                self.logger.info(f'Event processed {delta_time} seconds after creation in Guru3')
                 # mark event done in Guru3
                 self.guru3_mgr.mark_event_complete(event_id)
+                self.logger.info(f'\\\\== Event processed {round(delta_time, 2)} seconds after creation in Guru3.')
 
         except asyncio.CancelledError:
             pass
@@ -125,7 +125,7 @@ class EventHandler:
             self.logger.warning(f'Failed to fetch OMM user (token:{token}) on registration! Can\'t transfer PP!')
             return False
         self.logger.info(
-            f'Transferring PP (ppn:{from_user.ppn}) to OMM user (uid: {to_user.uid}, number: {to_user.num}.)')
+            f'Transferring PP (ppn:{from_user.ppn}) to OMM user (uid: {to_user.uid}, number: {to_user.num}).')
         # transfer PP to real user
         self.omm_mgr.transfer_pp(int(from_user.uid), int(to_user.uid), int(from_user.ppn))
         # delete temporary user, both in OMM and Asterisk
@@ -139,7 +139,7 @@ class EventHandler:
         number = event_data['number']
 
         # if new extension type is not DECT or SIP, determine whether the old user needs to be deleted
-        if ext_type not in ['DECT', 'SIP']:
+        if ext_type not in ['DECT', 'SIP', 'GROUP']:
             self.logger.warning(
                 f'Non-SIP/DECT extension update (type:{ext_type}), ignoring event and deleting old SIP and DECT entries for this number.')
             if number in self.omm_mgr.users:
@@ -155,6 +155,10 @@ class EventHandler:
         # handle DECT extension update
         elif ext_type == 'DECT':
             self.do_dect_extension_update(event_data)
+
+        # handle GROUP (callgroup) extension update
+        elif ext_type == 'GROUP':
+            self.do_group_extension_update(event_data)
 
     def do_sip_extension_update(self, event_data):
         number = event_data['number']
@@ -196,6 +200,9 @@ class EventHandler:
             sip_password = utils.create_password('alphanum', self.all_config['asterisk']['password_length'])
             self.asterisk_mgr.create_user(number=number, sip_password=sip_password)
             self.omm_mgr.create_user(name=name, number=number, token=token, sip_user=number, sip_password=sip_password)
+
+    def do_group_extension_update(self, event_data):
+        self.logger.info(event_data)
 
     def do_delete_extension(self, event_data):
         number = event_data['number']

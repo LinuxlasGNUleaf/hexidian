@@ -78,7 +78,6 @@ class OMMMgr:
         return user
 
     def transfer_pp(self, from_uid: int, to_uid: int, ppn: int):
-        self.logger.info(f'Moving PP (PPN: {ppn}) from OMM user with UID {from_uid} to user with UID {to_uid}.')
         # transfer pp from one user to the other
         self.omm.detach_user_device(uid=from_uid, ppn=ppn)
         self.omm.attach_user_device(uid=to_uid, ppn=ppn)
