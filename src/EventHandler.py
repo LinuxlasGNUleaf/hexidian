@@ -287,8 +287,6 @@ class EventHandler:
         self.logger.info('Updating callgroup in Asterisk\'s DB to reflect list of active members from Guru3.')
         active_extensions = [ext['extension'] for ext in event_data['extensions'] if ext['active']]
         current_extensions = self.asterisk_mgr.fetch_callgroup_members(callgroup_number)
-        self.logger.info(active_extensions + ['/'] + current_extensions)
-        self.logger.info(set(active_extensions + current_extensions))
         for ext in set(active_extensions + current_extensions):
             if ext in active_extensions and ext in current_extensions:
                 continue
