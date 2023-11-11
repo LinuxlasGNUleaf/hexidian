@@ -81,8 +81,8 @@ class AsteriskManager:
 
     def delete_callgroup(self, number):
         with self.connection.cursor() as cursor:
-            cursor.execute(f"delete from callgroups where extension={number}")
-            cursor.execute(f"delete from callgroup_members where extension={number}")
+            cursor.execute(f"delete from callgroups where extension='{number}'")
+            cursor.execute(f"delete from callgroup_members where extension='{number}'")
         self.connection.commit()
 
     def move_callgroup(self, old_number, new_number):
