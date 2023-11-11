@@ -25,7 +25,7 @@ class AsteriskManager:
     def close(self):
         self.connection.close()
 
-    def create_user(self, number, sip_password, temporary=False):
+    def create_user(self, number, sip_password, name, temporary=False):
         self.logger.info(f'Creating Asterisk user with number: {number}')
         call_router = 'call-router-temp' if temporary else 'call-router'
         with self.connection.cursor() as cursor:
@@ -34,7 +34,7 @@ class AsteriskManager:
             cursor.execute(
                 f"insert into ps_auths (id, auth_type, password, username) values ('{number}', 'userpass', '{sip_password}', '{number}');")
             cursor.execute(
-                f"insert into ps_endpoints (id, aors, auth, context, allow, direct_media) values ('{number}', '{number}', '{number}', '{call_router}', '!all,g722,alaw,ulaw,gsm', 'no');")
+                f"insert into ps_endpoints (id, aors, auth, context, callerid, allow, direct_media) values ('{number}', '{number}', '{number}', '{call_router}', '{name[:39]}', '!all,g722,alaw,ulaw,gsm', 'no');")
         self.connection.commit()
 
     def delete_user(self, number):
@@ -55,13 +55,15 @@ class AsteriskManager:
         with self.connection.cursor() as cursor:
             cursor.execute(f"update ps_aors set id='{new_number}' where id='{old_number}'")
             cursor.execute(f"update ps_auths set id='{new_number}', username='{new_number}' where id='{old_number}'")
-            cursor.execute(f"update ps_endpoints set id='{new_number}', aors='{new_number}', auth='{new_number}' where id='{old_number}'")
+            cursor.execute(
+                f"update ps_endpoints set id='{new_number}', aors='{new_number}', auth='{new_number}' where id='{old_number}'")
         self.connection.commit()
 
-    def update_password(self, number, new_password):
+    def update_user(self, number, password, name):
         self.logger.info(f'Updating password for Asterisk user {number}.')
         with self.connection.cursor() as cursor:
-            cursor.execute(f"update ps_auths set password='{new_password}' where id='{number}'")
+            cursor.execute(f"update ps_auths set password='{password}' where id='{number}'")
+            cursor.execute(f"update ps_endpoints set callerid='{name[:39]}' where id='{number}'")
         self.connection.commit()
 
     def check_for_callgroup(self, number):
@@ -98,7 +100,8 @@ class AsteriskManager:
 
     def add_user_to_callgroup(self, extension, callgroup):
         with self.connection.cursor() as cursor:
-            cursor.execute(f"insert into callgroup_members (extension, callgroup) values ('{extension}', '{callgroup}')")
+            cursor.execute(
+                f"insert into callgroup_members (extension, callgroup) values ('{extension}', '{callgroup}')")
         self.connection.commit()
 
     def remove_user_from_callgroup(self, extension, callgroup):

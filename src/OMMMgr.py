@@ -50,15 +50,15 @@ class OMMMgr:
     def update_user_info(self, number, name, token):
         self.logger.info(f'Updating user info (name: {name}, token: {token}) for OMM user {number}.')
         user = self.users[number]
-        user.name = name
+        user.name = name[:19]
         user.hierarchy2 = token
         self.users[number] = user
         self.omm.update_user(user)
         return user
 
     def create_user(self, name, number, sip_user, sip_password, token=None):
-        self.logger.info(f'Creating OMM user "{name}" with number: {number}')
-        user_data = self.omm.create_user(name=name,
+        self.logger.info(f'Creating OMM user "{name[:19]}" with number: {number}')
+        user_data = self.omm.create_user(name=name[:19],
                                          number=number,
                                          desc1='GURU_MGR',
                                          desc2=token,

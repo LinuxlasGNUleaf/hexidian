@@ -2,6 +2,8 @@ import os
 import random
 import string
 
+allowed_chars = string.punctuation + string.ascii_letters + string.digits + ' äöüß'
+
 
 def read_password_env(env_name: str):
     if env_name not in os.environ:
@@ -19,3 +21,7 @@ def create_password(pw_type: str, length: int):
         pool = string.digits + string.ascii_letters + string.punctuation
     pw = ''.join([random.choice(pool) for _ in range(length)])
     return pw
+
+
+def normalize_name(name: str):
+    return ''.join([char if char in allowed_chars else '?' for char in name])

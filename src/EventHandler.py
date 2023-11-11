@@ -2,15 +2,12 @@ import asyncio
 import logging
 import signal
 from datetime import datetime
-import string
 
 import utils
 from Guru3Mgr import Guru3Mgr
 from OMMMgr import OMMMgr
 from AsteriskMgr import AsteriskManager
 from RegistrationMgr import RegistrationMgr
-
-allowed_chars = string.punctuation + string.ascii_letters + string.digits + ' '
 
 
 class EventHandler:
@@ -163,6 +160,7 @@ class EventHandler:
     def do_sip_extension_update(self, event_data):
         number = event_data['number']
         sip_password = event_data['password']
+        name = utils.normalize_name(event_data['name'])
         self.logger.info(f'Processing SIP extension update for number {number}.')
 
         # delete DECT extension, if present
@@ -171,15 +169,15 @@ class EventHandler:
 
         # SIP extension already exists, only a password update is required
         if self.asterisk_mgr.check_for_user(number=number):
-            self.asterisk_mgr.update_password(number=number, new_password=sip_password)
+            self.asterisk_mgr.update_user(number=number, password=sip_password, name=name)
 
         # new SIP extension
         else:
-            self.asterisk_mgr.create_user(number=number, sip_password=sip_password)
+            self.asterisk_mgr.create_user(number=number, sip_password=sip_password, name=name)
 
     def do_dect_extension_update(self, event_data):
         # trim name to length acceptable by OMM
-        name = ''.join([char if char in allowed_chars else '?' for char in event_data['name']])[:19]
+        name = utils.normalize_name(event_data['name'])
         number = event_data['number']
         token = event_data['token']
         self.logger.info(f'Processing DECT extension update for number {number}.')
@@ -198,7 +196,7 @@ class EventHandler:
                 self.asterisk_mgr.delete_user(number=number)
 
             sip_password = utils.create_password('alphanum', self.all_config['asterisk']['password_length'])
-            self.asterisk_mgr.create_user(number=number, sip_password=sip_password)
+            self.asterisk_mgr.create_user(number=number, name=name, sip_password=sip_password)
             self.omm_mgr.create_user(name=name, number=number, token=token, sip_user=number, sip_password=sip_password)
 
     def do_group_extension_update(self, event_data):
@@ -218,7 +216,7 @@ class EventHandler:
             self.asterisk_mgr.update_callgroup(number, name)
         # else, create new callgroup
         else:
-            self.asterisk_mgr.create_callgroup(number)
+            self.asterisk_mgr.create_callgroup(number=number, name=name)
 
     def do_delete_extension(self, event_data):
         number = event_data['number']
@@ -269,7 +267,7 @@ class EventHandler:
                                                         sip_user=temp_number,
                                                         sip_password=temp_password)
                     self.omm_mgr.omm.attach_user_device(uid=int(omm_user.uid), ppn=int(device.ppn))
-                    self.asterisk_mgr.create_user(number=temp_number, sip_password=temp_password, temporary=True)
+                    self.asterisk_mgr.create_user(number=temp_number, name='Unbound Handset', sip_password=temp_password, temporary=True)
 
                 await asyncio.sleep(self.own_config['collect_ppns_interval'])
         except asyncio.CancelledError:
